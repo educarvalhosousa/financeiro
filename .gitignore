@@ -1,0 +1,8 @@
+node_modules
+.vite
+.env
+dist
+client_secret*.json
+GOCSPX.docx
+*.bak
+*.docx
