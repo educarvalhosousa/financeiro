@@ -1,91 +1,163 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { supabase } from '../utils/supabase';
 
 const FinanceContext = createContext();
 
 export const useFinance = () => useContext(FinanceContext);
 
 export const DEFAULT_CATEGORIES = [
-    { id: '1', name: 'Alimentação', type: 'expense', icon: 'Utensils' },
-    { id: '2', name: 'Lazer', type: 'expense', icon: 'Gamepad' },
-    { id: '3', name: 'Transporte', type: 'expense', icon: 'Car' },
-    { id: '4', name: 'Saúde', type: 'expense', icon: 'HeartPulse' },
-    { id: '5', name: 'Salário', type: 'income', icon: 'Wallet' },
-    { id: '6', name: 'Investimentos', type: 'income', icon: 'TrendingUp' },
+    { name: 'Alimentação', type: 'expense', icon: 'Utensils' },
+    { name: 'Lazer', type: 'expense', icon: 'Gamepad' },
+    { name: 'Transporte', type: 'expense', icon: 'Car' },
+    { name: 'Saúde', type: 'expense', icon: 'HeartPulse' },
+    { name: 'Salário', type: 'income', icon: 'Wallet' },
+    { name: 'Investimentos', type: 'income', icon: 'TrendingUp' },
 ];
 
-export const USERS = ['Marido', 'Esposa'];
-
 export const FinanceProvider = ({ children }) => {
-    const [transactions, setTransactions] = useState(() => {
-        const saved = localStorage.getItem('transactions');
-        return saved ? JSON.parse(saved) : [];
-    });
-
-    const [currentUser, setCurrentUser] = useState(() => {
-        const saved = localStorage.getItem('currentUser');
-        try {
-            return saved ? JSON.parse(saved) : null;
-        } catch (e) {
-            return null;
-        }
-    });
-
-    const [categories, setCategories] = useState(() => {
-        const saved = localStorage.getItem('categories');
-        return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
-    });
+    const [transactions, setTransactions] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Filter State
     const [filters, setFilters] = useState({
-        period: 'month', // all, month, week, custom
+        period: 'month',
         category: 'all',
         user: 'all',
         startDate: '',
         endDate: ''
     });
 
+    // 1. Escutar Mudanças de Autenticação
     useEffect(() => {
-        localStorage.setItem('transactions', JSON.stringify(transactions));
-    }, [transactions]);
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                setCurrentUser({
+                    id: session.user.id,
+                    name: session.user.user_metadata.full_name,
+                    picture: session.user.user_metadata.avatar_url,
+                    email: session.user.email
+                });
+            }
+            setIsLoading(false);
+        });
 
-    useEffect(() => {
-        localStorage.setItem('categories', JSON.stringify(categories));
-    }, [categories]);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+                setCurrentUser({
+                    id: session.user.id,
+                    name: session.user.user_metadata.full_name,
+                    picture: session.user.user_metadata.avatar_url,
+                    email: session.user.email
+                });
+            } else {
+                setCurrentUser(null);
+            }
+        });
 
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // 2. Buscar Dados do Supabase quando o usuário estiver logado
     useEffect(() => {
-        if (currentUser) localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        else localStorage.removeItem('currentUser');
+        if (!currentUser) {
+            setTransactions([]);
+            setCategories(DEFAULT_CATEGORIES);
+            return;
+        }
+
+        const fetchData = async () => {
+            setIsLoading(true);
+
+            // Buscar Transações
+            const { data: transData } = await supabase
+                .from('transactions')
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (transData) setTransactions(transData);
+
+            // Buscar Categorias (Customizadas + Padrão se desejar)
+            const { data: catData } = await supabase
+                .from('categories')
+                .select('*');
+
+            if (catData) {
+                setCategories([...DEFAULT_CATEGORIES, ...catData]);
+            }
+
+            setIsLoading(false);
+        };
+
+        fetchData();
     }, [currentUser]);
 
-    const addTransaction = (transaction) => {
-        setTransactions(prev => [
-            {
-                ...transaction,
-                id: Date.now(),
-                date: new Date().toISOString(),
-                userName: currentUser?.name || 'Sistema' // Link to user name
-            },
-            ...prev
-        ]);
+    const addTransaction = async (transaction) => {
+        if (!currentUser) return;
+
+        const newTrans = {
+            ...transaction,
+            user_id: currentUser.id,
+            date: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('transactions')
+            .insert([newTrans])
+            .select();
+
+        if (!error && data) {
+            setTransactions(prev => [data[0], ...prev]);
+        }
     };
 
-    const removeTransaction = (id) => {
+    const removeTransaction = async (id) => {
+        if (!currentUser) return;
         if (window.confirm('Deseja excluir esta transação?')) {
-            setTransactions(prev => prev.filter(t => t.id !== id));
+            const { error } = await supabase
+                .from('transactions')
+                .delete()
+                .eq('id', id);
+
+            if (!error) {
+                setTransactions(prev => prev.filter(t => t.id !== id));
+            }
         }
     };
 
-    const addCategory = (category) => {
-        setCategories(prev => [...prev, { ...category, id: Date.now().toString() }]);
+    const addCategory = async (category) => {
+        if (!currentUser) return;
+        const newCat = { ...category, user_id: currentUser.id };
+
+        const { data, error } = await supabase
+            .from('categories')
+            .insert([newCat])
+            .select();
+
+        if (!error && data) {
+            setCategories(prev => [...prev, data[0]]);
+        }
     };
 
-    const removeCategory = (id) => {
+    const removeCategory = async (id) => {
+        if (!currentUser) return;
         if (window.confirm('Deseja excluir esta categoria?')) {
-            setCategories(prev => prev.filter(c => c.id !== id));
+            const { error } = await supabase
+                .from('categories')
+                .delete()
+                .eq('id', id);
+
+            if (!error) {
+                setCategories(prev => prev.filter(c => c.id !== id));
+            }
         }
     };
 
-    const logout = () => setCurrentUser(null);
+    const logout = async () => {
+        await supabase.auth.signOut();
+        setCurrentUser(null);
+    };
 
     // Computed: Filtered Transactions
     const filteredTransactions = useMemo(() => {
@@ -94,7 +166,7 @@ export const FinanceProvider = ({ children }) => {
             const matchCategory = filters.category === 'all' || t.category === filters.category;
 
             const tDate = new Date(t.date);
-            tDate.setHours(0, 0, 0, 0); // Reset time for comparison
+            tDate.setHours(0, 0, 0, 0);
 
             const now = new Date();
             now.setHours(0, 0, 0, 0);
@@ -126,7 +198,6 @@ export const FinanceProvider = ({ children }) => {
         });
     }, [transactions, filters]);
 
-    // Totals based on filtered data
     const totals = useMemo(() => {
         return filteredTransactions.reduce((acc, t) => {
             const val = parseFloat(t.value);
@@ -141,7 +212,6 @@ export const FinanceProvider = ({ children }) => {
         }, { balance: 0, income: 0, expense: 0 });
     }, [filteredTransactions]);
 
-    // Data for Charts (Filtered Period)
     const chartData = useMemo(() => {
         const categoriesData = filteredTransactions.reduce((acc, t) => {
             if (t.type === 'expense') {
@@ -164,7 +234,7 @@ export const FinanceProvider = ({ children }) => {
             removeTransaction,
             totals,
             currentUser,
-            setCurrentUser,
+            isLoading,
             logout,
             categories,
             addCategory,

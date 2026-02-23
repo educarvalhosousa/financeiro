@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { FinanceProvider, useFinance, USERS, DEFAULT_CATEGORIES } from './context/FinanceContext';
+import { FinanceProvider, useFinance, DEFAULT_CATEGORIES } from './context/FinanceContext';
 import DashboardCharts from './components/Charts';
-import { Filter, LogOut, User as UserIcon, Calendar, Tag } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
+import { Filter, LogOut, Calendar, Tag, Loader2 } from 'lucide-react';
+import { supabase } from './utils/supabase';
 import './index.css';
 
 const formatCurrency = (value) => {
@@ -16,7 +15,7 @@ const Header = ({ onManageCategories }) => {
         <header>
             <div>
                 <h1 style={{ fontSize: '1.2rem' }}>FinanSe</h1>
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Gestão Compartilhada</p>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Gestão na Nuvem</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
@@ -44,10 +43,10 @@ const CategoryManager = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!newCat.name) return;
-        addCategory(newCat);
+        await addCategory(newCat);
         setNewCat({ ...newCat, name: '' });
     };
 
@@ -71,15 +70,17 @@ const CategoryManager = ({ isOpen, onClose }) => {
                 </form>
 
                 <div style={{ overflowY: 'auto', flex: 1 }}>
-                    {categories.map(c => (
-                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--glass-border)', fontSize: '0.9rem' }}>
+                    {categories.map((c, idx) => (
+                        <div key={c.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--glass-border)', fontSize: '0.9rem' }}>
                             <span>{c.name} <small style={{ color: 'var(--text-secondary)' }}>({c.type === 'income' ? 'Rec' : 'Des'})</small></span>
-                            <button
-                                onClick={() => removeCategory(c.id)}
-                                style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
-                            >
-                                ✕
-                            </button>
+                            {c.id && (
+                                <button
+                                    onClick={() => removeCategory(c.id)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
+                                >
+                                    ✕
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -105,9 +106,9 @@ const FilterBar = () => {
                     <option value="week">Última Semana</option>
                     <option value="custom">Personalizado (Calendário)</option>
                 </select>
-                <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
-                    <option value="all">Todos Usuários</option>
-                    {USERS.map(u => <option key={u} value={u}>{u}</option>)}
+                <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px', gridColumn: 'span 2' }}>
+                    <option value="all">Todas Categorias</option>
+                    {categories.map((c, idx) => <option key={c.id || idx} value={c.name}>{c.name}</option>)}
                 </select>
             </div>
 
@@ -133,11 +134,6 @@ const FilterBar = () => {
                     </div>
                 </div>
             )}
-
-            <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
-                <option value="all">Todas Categorias</option>
-                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
         </div>
     );
 };
@@ -163,9 +159,6 @@ const TransactionList = () => {
                                     <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--accent-primary)' }}>
                                         <Tag size={10} /> {t.category}
                                     </span>
-                                    <span className="transaction-date" style={{ color: 'var(--text-secondary)' }}>
-                                        • {t.userName}
-                                    </span>
                                 </div>
                             </div>
                             <div className={`stat-value ${t.type}`}>
@@ -190,10 +183,10 @@ const Modal = ({ isOpen, onClose }) => {
         setForm({ ...form, type: newType, category: firstValidCategory });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.name || !form.value) return;
-        addTransaction({ ...form, value: parseFloat(form.value) });
+        await addTransaction({ ...form, value: parseFloat(form.value) });
         setForm({ ...form, name: '', value: '' });
         onClose();
     };
@@ -222,8 +215,8 @@ const Modal = ({ isOpen, onClose }) => {
                         <div className="form-group">
                             <label>Categoria</label>
                             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                                {categories.filter(c => c.type === form.type).map(c => (
-                                    <option key={c.id} value={c.name}>{c.name}</option>
+                                {categories.filter(c => c.type === form.type).map((c, idx) => (
+                                    <option key={c.id || idx} value={c.name}>{c.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -237,15 +230,14 @@ const Modal = ({ isOpen, onClose }) => {
 };
 
 const Login = () => {
-    const { setCurrentUser } = useFinance();
-
-    const handleSuccess = (credentialResponse) => {
-        const decoded = jwtDecode(credentialResponse.credential);
-        setCurrentUser({
-            name: decoded.name,
-            picture: decoded.picture,
-            email: decoded.email
+    const handleGoogleLogin = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin
+            }
         });
+        if (error) console.error('Erro no login:', error.message);
     };
 
     return (
@@ -253,19 +245,18 @@ const Login = () => {
             <div className="card" style={{ textAlign: 'center', maxWidth: '400px', width: '90%' }}>
                 <div style={{ marginBottom: '30px' }}>
                     <h1 style={{ marginBottom: '10px' }}>FinanSe</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Acesse com sua conta Google:</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Dados seguros na nuvem</p>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <GoogleLogin
-                        onSuccess={handleSuccess}
-                        onError={() => console.log('Login Failed')}
-                        useOneTap
-                        theme="filled_blue"
-                        shape="pill"
-                    />
-                </div>
+                <button
+                    onClick={handleGoogleLogin}
+                    className="btn btn-primary"
+                    style={{ background: '#fff', color: '#000', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                >
+                    <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px' }} />
+                    Entrar com Google
+                </button>
                 <p style={{ marginTop: '20px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Gestão compartilhada de forma simples e segura.
+                    Acesse seus dados de qualquer computador de forma segura.
                 </p>
             </div>
         </div>
@@ -273,9 +264,17 @@ const Login = () => {
 };
 
 function AppContent() {
-    const { currentUser, totals } = useFinance();
+    const { currentUser, totals, isLoading } = useFinance();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+
+    if (isLoading) {
+        return (
+            <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <Loader2 className="animate-spin" size={48} color="var(--accent-primary)" />
+            </div>
+        );
+    }
 
     if (!currentUser) return <Login />;
 
@@ -283,7 +282,7 @@ function AppContent() {
         <div className="container">
             <Header onManageCategories={() => setIsCatModalOpen(true)} />
             <div className="card balance-card">
-                <div className="balance-label">Total GERAL (Filtro)</div>
+                <div className="balance-label">Saldo em Nuvem (Filtro)</div>
                 <div className="balance-value" style={{ fontSize: '2rem' }}>{formatCurrency(totals.balance)}</div>
             </div>
             <div className="row">
