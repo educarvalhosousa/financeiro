@@ -1,0 +1,245 @@
+/* [project]/src/app/globals.css [app-client] (css) */
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --accent-primary: #6366f1;
+  --accent-success: #10b981;
+  --accent-danger: #ef4444;
+  --bg-main: #0f172a;
+  --card-bg: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --glass-bg: #ffffff08;
+  --glass-border: #ffffff1a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 10px 0;
+  display: flex;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  margin-bottom: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 25px -5px #0000004d;
+}
+
+.balance-card {
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  border: none;
+}
+
+.balance-label {
+  opacity: .8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: .8rem;
+}
+
+.balance-value {
+  margin: 10px 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.row {
+  gap: 15px;
+  margin-bottom: 20px;
+  display: flex;
+}
+
+.stat-item {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  flex: 1;
+  padding: 15px;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  font-size: .7rem;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.income {
+  color: var(--accent-success);
+}
+
+.expense {
+  color: var(--accent-danger);
+}
+
+.section-title {
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+}
+
+.transaction-item {
+  background: var(--glass-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 16px;
+  transition: transform .2s;
+  display: flex;
+}
+
+.transaction-item:hover {
+  background: #ffffff0d;
+  transform: translateX(5px);
+}
+
+.transaction-name {
+  font-weight: 500;
+  display: block;
+}
+
+.transaction-date {
+  color: var(--text-secondary);
+  font-size: .7rem;
+}
+
+.fab {
+  background: var(--accent-primary);
+  color: #fff;
+  cursor: pointer;
+  z-index: 100;
+  border: none;
+  border-radius: 30px;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 60px;
+  font-size: 30px;
+  transition: transform .2s;
+  display: flex;
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  box-shadow: 0 10px 20px #6366f166;
+}
+
+.fab:active {
+  transform: scale(.9);
+}
+
+.modal-overlay {
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+  background: #000c;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  display: flex;
+  position: fixed;
+  inset: 0;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  font-size: .8rem;
+  display: block;
+}
+
+input, select {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  background: #ffffff0d;
+  outline: none;
+  width: 100%;
+  padding: 12px;
+}
+
+option {
+  background-color: var(--card-bg);
+  color: #fff;
+}
+
+input:focus {
+  border-color: var(--accent-primary);
+}
+
+.btn {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  padding: 12px;
+  font-weight: 600;
+  transition: opacity .2s;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.btn:active {
+  opacity: .8;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px;
+  font-size: .9rem;
+}
+
+/*# sourceMappingURL=src_app_globals_css_bad6b30c._.single.css.map*/

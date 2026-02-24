@@ -1,3 +1,4 @@
+"use client"
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '../utils/supabase';
 
@@ -18,6 +19,7 @@ export const FinanceProvider = ({ children }) => {
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
+    const [householdMembers, setHouseholdMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Filter State
@@ -31,32 +33,82 @@ export const FinanceProvider = ({ children }) => {
 
     // 1. Escutar Mudanças de Autenticação
     useEffect(() => {
+        console.log('FinanceContext: Inicializando monitor de auth...');
+
+        // Função interna para buscar o perfil e atualizar o household_id em background
+        const enrichUserWithProfile = async (session) => {
+            if (!session) return;
+            console.log('FinanceContext: Enriquecendo perfil para:', session.user.id);
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('household_id, full_name, avatar_url')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                if (error) {
+                    console.warn('FinanceContext: Erro ao buscar perfil (usuário pode não ter registro em public.profiles):', error.message);
+                    return;
+                }
+
+                if (profile) {
+                    console.log('FinanceContext: Perfil encontrado, household_id:', profile.household_id);
+                    setCurrentUser(prev => prev ? {
+                        ...prev,
+                        name: profile.full_name || prev.name,
+                        picture: profile.avatar_url || prev.picture,
+                        household_id: profile.household_id
+                    } : null);
+                } else {
+                    console.log('FinanceContext: Nenhum perfil encontrado na tabela public.profiles para este ID.');
+                }
+            } catch (err) {
+                console.error('FinanceContext: Falha ao enriquecer perfil:', err);
+            }
+        };
+
+        // Tentar pegar a sessão atual imediatamente
         supabase.auth.getSession().then(({ data: { session } }) => {
+            console.log('FinanceContext: Sessão inicial:', session ? 'Encontrada' : 'Nula');
             if (session) {
+                // Define o básico imediatamente para não travar a tela
                 setCurrentUser({
                     id: session.user.id,
                     name: session.user.user_metadata.full_name,
                     picture: session.user.user_metadata.avatar_url,
-                    email: session.user.email
+                    email: session.user.email,
+                    household_id: null
                 });
+                // Busca household em background
+                enrichUserWithProfile(session);
             }
             setIsLoading(false);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        // Escutar eventos de auth
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('FinanceContext: Evento Auth:', event, session ? 'Logado' : 'Deslogado');
+
             if (session) {
                 setCurrentUser({
                     id: session.user.id,
                     name: session.user.user_metadata.full_name,
                     picture: session.user.user_metadata.avatar_url,
-                    email: session.user.email
+                    email: session.user.email,
+                    household_id: null
                 });
+                enrichUserWithProfile(session);
             } else {
                 setCurrentUser(null);
             }
+
+            setIsLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            console.log('FinanceContext: Desinscrevendo do monitor de auth');
+            subscription.unsubscribe();
+        };
     }, []);
 
     // 2. Buscar Dados do Supabase quando o usuário estiver logado
@@ -68,26 +120,61 @@ export const FinanceProvider = ({ children }) => {
         }
 
         const fetchData = async () => {
+            console.log('FinanceContext: Iniciando fetchData...');
             setIsLoading(true);
 
-            // Buscar Transações
-            const { data: transData } = await supabase
-                .from('transactions')
-                .select('*')
-                .order('date', { ascending: false });
+            try {
+                // Buscar Transações da "Casa" (Household)
+                const query = supabase
+                    .from('transactions')
+                    .select('*')
+                    .order('date', { ascending: false });
 
-            if (transData) setTransactions(transData);
+                if (currentUser.household_id) {
+                    query.eq('household_id', currentUser.household_id);
+                } else {
+                    query.eq('user_id', currentUser.id);
+                }
 
-            // Buscar Categorias (Customizadas + Padrão se desejar)
-            const { data: catData } = await supabase
-                .from('categories')
-                .select('*');
+                const { data: transData, error: transError } = await query;
+                if (transError) console.error('FinanceContext: Erro transações:', transError);
+                if (transData) setTransactions(transData);
 
-            if (catData) {
-                setCategories([...DEFAULT_CATEGORIES, ...catData]);
+                // Buscar Categorias da "Casa"
+                const catQuery = supabase
+                    .from('categories')
+                    .select('*');
+
+                if (currentUser.household_id) {
+                    catQuery.eq('household_id', currentUser.household_id);
+                } else {
+                    catQuery.eq('user_id', currentUser.id);
+                }
+
+                const { data: catData, error: catError } = await catQuery;
+                if (catError) console.error('FinanceContext: Erro categorias:', catError);
+                if (catData) {
+                    setCategories([...DEFAULT_CATEGORIES, ...catData]);
+                }
+
+                // Buscar Membros da Casa
+                if (currentUser.household_id) {
+                    const { data: members, error: memError } = await supabase
+                        .from('profiles')
+                        .select('id, full_name')
+                        .eq('household_id', currentUser.household_id);
+
+                    if (memError) console.error('FinanceContext: Erro membros:', memError);
+                    if (members) setHouseholdMembers(members);
+                } else {
+                    setHouseholdMembers([{ id: currentUser.id, full_name: currentUser.name }]);
+                }
+            } catch (err) {
+                console.error('FinanceContext: Erro ao carregar dados:', err);
+            } finally {
+                console.log('FinanceContext: fetchData concluído.');
+                setIsLoading(false);
             }
-
-            setIsLoading(false);
         };
 
         fetchData();
@@ -99,6 +186,7 @@ export const FinanceProvider = ({ children }) => {
         const newTrans = {
             ...transaction,
             user_id: currentUser.id,
+            household_id: currentUser.household_id,
             date: new Date().toISOString()
         };
 
@@ -128,7 +216,11 @@ export const FinanceProvider = ({ children }) => {
 
     const addCategory = async (category) => {
         if (!currentUser) return;
-        const newCat = { ...category, user_id: currentUser.id };
+        const newCat = {
+            ...category,
+            user_id: currentUser.id,
+            household_id: currentUser.household_id
+        };
 
         const { data, error } = await supabase
             .from('categories')
@@ -162,7 +254,7 @@ export const FinanceProvider = ({ children }) => {
     // Computed: Filtered Transactions
     const filteredTransactions = useMemo(() => {
         return transactions.filter(t => {
-            const matchUser = filters.user === 'all' || t.userName === filters.user;
+            const matchUser = filters.user === 'all' || t.user_id === filters.user;
             const matchCategory = filters.category === 'all' || t.category === filters.category;
 
             const tDate = new Date(t.date);
@@ -226,6 +318,32 @@ export const FinanceProvider = ({ children }) => {
         }));
     }, [filteredTransactions]);
 
+    const joinHousehold = async (inviteCode) => {
+        if (!currentUser || !inviteCode) return { error: 'Dados inválidos' };
+
+        // 1. O código de convite é o próprio household_id (UUID)
+        // No futuro podemos simplificar para um código curto mais amigável
+        const { data: household, error: hError } = await supabase
+            .from('households')
+            .select('id')
+            .eq('id', inviteCode)
+            .single();
+
+        if (hError || !household) return { error: 'Código de convite inválido' };
+
+        // 2. Atualizar o perfil do usuário atual
+        const { error: pError } = await supabase
+            .from('profiles')
+            .update({ household_id: household.id })
+            .eq('id', currentUser.id);
+
+        if (pError) return { error: 'Erro ao vincular conta' };
+
+        // 3. Atualizar estado local
+        setCurrentUser(prev => ({ ...prev, household_id: household.id }));
+        return { success: true };
+    };
+
     return (
         <FinanceContext.Provider value={{
             transactions: filteredTransactions,
@@ -241,7 +359,9 @@ export const FinanceProvider = ({ children }) => {
             removeCategory,
             filters,
             setFilters,
-            chartData
+            chartData,
+            joinHousehold,
+            householdMembers
         }}>
             {children}
         </FinanceContext.Provider>

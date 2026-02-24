@@ -1,15 +1,15 @@
+"use client"
 import React, { useState } from 'react';
 import { FinanceProvider, useFinance, DEFAULT_CATEGORIES } from './context/FinanceContext';
 import DashboardCharts from './components/Charts';
-import { Filter, LogOut, Calendar, Tag, Loader2 } from 'lucide-react';
+import { Filter, LogOut, Calendar, Tag, Loader2, Users } from 'lucide-react';
 import { supabase } from './utils/supabase';
-import './index.css';
 
 const formatCurrency = (value) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
 
-const Header = ({ onManageCategories }) => {
+const Header = ({ onManageCategories, onManageHousehold }) => {
     const { currentUser, logout } = useFinance();
     return (
         <header>
@@ -18,6 +18,13 @@ const Header = ({ onManageCategories }) => {
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Gestão na Nuvem</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                    onClick={onManageHousehold}
+                    style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
+                    title="Configurações da Casa (Compartilhar)"
+                >
+                    <Users size={16} />
+                </button>
                 <button
                     onClick={onManageCategories}
                     style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
@@ -34,6 +41,72 @@ const Header = ({ onManageCategories }) => {
                 </button>
             </div>
         </header>
+    );
+};
+
+const HouseholdManager = ({ isOpen, onClose }) => {
+    const { currentUser, joinHousehold } = useFinance();
+    const [inviteCode, setInviteCode] = useState('');
+    const [status, setStatus] = useState('');
+
+    if (!isOpen) return null;
+
+    const handleJoin = async (e) => {
+        e.preventDefault();
+        setStatus('Processando...');
+        const result = await joinHousehold(inviteCode);
+        if (result.success) {
+            setStatus('Sucesso! Você agora compartilha esta casa.');
+            setTimeout(onClose, 2000);
+        } else {
+            setStatus('Erro: ' + result.error);
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
+            <div className="modal-content">
+                <h2 style={{ marginBottom: '20px' }}>Minha Casa</h2>
+
+                <div style={{ marginBottom: '30px', padding: '15px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Seu Código de Convite:</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <code style={{ flex: 1, background: '#000', padding: '10px', borderRadius: '8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                            {currentUser.household_id || 'Carregando...'}
+                        </code>
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(currentUser.household_id);
+                                alert('Código copiado!');
+                            }}
+                            className="btn btn-primary"
+                            style={{ padding: '8px 15px', fontSize: '0.8rem' }}
+                        >
+                            Copiar
+                        </button>
+                    </div>
+                    <p style={{ fontSize: '0.7rem', marginTop: '10px', color: 'var(--text-secondary)' }}>
+                        Envie este código para seu parceiro(a) para compartilharem as finanças.
+                    </p>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>Entrar em uma Casa</h3>
+                    <form onSubmit={handleJoin} style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                        <input
+                            placeholder="Cole o código do parceiro aqui..."
+                            value={inviteCode}
+                            onChange={e => setInviteCode(e.target.value)}
+                            required
+                        />
+                        <button type="submit" className="btn btn-primary">Vincular Conta</button>
+                    </form>
+                    {status && <p style={{ fontSize: '0.8rem', marginTop: '10px', textAlign: 'center', color: status.startsWith('Erro') ? 'var(--accent-danger)' : 'var(--accent-primary)' }}>{status}</p>}
+                </div>
+
+                <button className="btn" style={{ background: 'var(--glass-bg)', width: '100%' }} onClick={onClose}>Fechar</button>
+            </div>
+        </div>
     );
 };
 
@@ -106,6 +179,12 @@ const FilterBar = () => {
                     <option value="week">Última Semana</option>
                     <option value="custom">Personalizado (Calendário)</option>
                 </select>
+                <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
+                    <option value="all">Todos Membros</option>
+                    {useFinance().householdMembers.map(m => (
+                        <option key={m.id} value={m.id}>{m.full_name?.split(' ')[0] || 'Membro'}</option>
+                    ))}
+                </select>
                 <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px', gridColumn: 'span 2' }}>
                     <option value="all">Todas Categorias</option>
                     {categories.map((c, idx) => <option key={c.id || idx} value={c.name}>{c.name}</option>)}
@@ -148,24 +227,34 @@ const TransactionList = () => {
                 {transactions.length === 0 ? (
                     <div className="empty-state">Nenhuma transação encontrada com estes filtros.</div>
                 ) : (
-                    transactions.map(t => (
-                        <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
-                            <div className="transaction-info">
-                                <span className="transaction-name">{t.name}</span>
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                    <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                        <Calendar size={10} /> {new Date(t.date).toLocaleDateString('pt-BR')}
-                                    </span>
-                                    <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--accent-primary)' }}>
-                                        <Tag size={10} /> {t.category}
-                                    </span>
+                    transactions.map(t => {
+                        const creator = useFinance().householdMembers.find(m => m.id === t.user_id);
+                        return (
+                            <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
+                                <div className="transaction-info">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span className="transaction-name">{t.name}</span>
+                                        {creator && (
+                                            <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'var(--glass-bg)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
+                                                {creator.full_name?.split(' ')[0]}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                        <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            <Calendar size={10} /> {new Date(t.date).toLocaleDateString('pt-BR')}
+                                        </span>
+                                        <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--accent-primary)' }}>
+                                            <Tag size={10} /> {t.category}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className={`stat-value ${t.type}`}>
+                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
                                 </div>
                             </div>
-                            <div className={`stat-value ${t.type}`}>
-                                {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>
@@ -234,7 +323,11 @@ const Login = () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin
+                redirectTo: window.location.origin,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
             }
         });
         if (error) console.error('Erro no login:', error.message);
@@ -263,10 +356,11 @@ const Login = () => {
     );
 };
 
-function AppContent() {
+export default function MainApp() {
     const { currentUser, totals, isLoading } = useFinance();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+    const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState(false);
 
     if (isLoading) {
         return (
@@ -280,7 +374,10 @@ function AppContent() {
 
     return (
         <div className="container">
-            <Header onManageCategories={() => setIsCatModalOpen(true)} />
+            <Header
+                onManageCategories={() => setIsCatModalOpen(true)}
+                onManageHousehold={() => setIsHouseholdModalOpen(true)}
+            />
             <div className="card balance-card">
                 <div className="balance-label">Saldo em Nuvem (Filtro)</div>
                 <div className="balance-value" style={{ fontSize: '2rem' }}>{formatCurrency(totals.balance)}</div>
@@ -303,16 +400,7 @@ function AppContent() {
             <button className="fab" onClick={() => setIsModalOpen(true)}>+</button>
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
             <CategoryManager isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} />
+            <HouseholdManager isOpen={isHouseholdModalOpen} onClose={() => setIsHouseholdModalOpen(false)} />
         </div>
     );
 }
-
-function App() {
-    return (
-        <FinanceProvider>
-            <AppContent />
-        </FinanceProvider>
-    );
-}
-
-export default App;
