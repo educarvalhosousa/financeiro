@@ -68,22 +68,46 @@ export const FinanceProvider = ({ children }) => {
         };
 
         // Tentar pegar a sessão atual imediatamente
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            console.log('FinanceContext: Sessão inicial:', session ? 'Encontrada' : 'Nula');
-            if (session) {
-                // Define o básico imediatamente para não travar a tela
-                setCurrentUser({
-                    id: session.user.id,
-                    name: session.user.user_metadata.full_name,
-                    picture: session.user.user_metadata.avatar_url,
-                    email: session.user.email,
-                    household_id: null
-                });
-                // Busca household em background
-                enrichUserWithProfile(session);
+        const initAuth = async () => {
+            console.log('FinanceContext: Iniciando initAuth...');
+            console.log('FinanceContext: Supabase URL detectada:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 15) + '...');
+
+            // Safety Hatch: Se em 10 segundos não carregar, libera a tela
+            const timeout = setTimeout(() => {
+                if (isLoading) {
+                    console.warn('FinanceContext: Timeout de carregamento atingido! Forçando desbloqueio.');
+                    setIsLoading(false);
+                }
+            }, 10000);
+
+            try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    console.error('FinanceContext: Erro ao recuperar sessão:', sessionError.message);
+                }
+
+                console.log('FinanceContext: Sessão inicial:', session ? 'Encontrada' : 'Nula');
+
+                if (session) {
+                    setCurrentUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata.full_name,
+                        picture: session.user.user_metadata.avatar_url,
+                        email: session.user.email,
+                        household_id: null
+                    });
+                    enrichUserWithProfile(session);
+                }
+            } catch (err) {
+                console.error('FinanceContext: Erro fatal no initAuth:', err);
+            } finally {
+                clearTimeout(timeout);
+                setIsLoading(false);
             }
-            setIsLoading(false);
-        });
+        };
+
+        initAuth();
 
         // Escutar eventos de auth
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
