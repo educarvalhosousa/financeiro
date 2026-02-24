@@ -1,4 +1,5 @@
 node_modules
+.next
 .vite
 .env
 dist
@@ -6,3 +7,4 @@ client_secret*.json
 GOCSPX.docx
 *.bak
 *.docx
+.vercel
