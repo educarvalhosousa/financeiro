@@ -12,6 +12,11 @@ O projeto deve manter um visual de alta gama, fugindo do básico.
 - **Interação**: Micro-animações em botões e transições de modal.
 - **Feedback**: Loading states não-bloqueantes e toasts informativos (StatusMessages).
 
+## Identidade Visual (Marca)
+- **Logo Login (`logo1.png`)**: Versão vertical/completa para destaque central na tela de entrada.
+- **Logo Header (`logo2.png`)**: Versão horizontal/compacta para otimização de espaço no cabeçalho.
+- **Favicon**: Deve ser derivado do ícone da marca (símbolo infinito/nó).
+
 ## Componentes Críticos
 - **Dashboard**: Layout em grades (Grid) responsivas.
 - **FilterBar**: Acesso rápido a períodos e membros da casa.

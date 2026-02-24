@@ -13,9 +13,8 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
     const { currentUser, logout } = useFinance();
     return (
         <header>
-            <div>
-                <h1 style={{ fontSize: '1.2rem' }}>FinanSe</h1>
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Gestão na Nuvem</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img src="/logo2.png" alt="FinanSe" style={{ height: '32px', width: 'auto' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
@@ -336,9 +335,9 @@ const Login = () => {
     return (
         <div className="container" style={{ justifyContent: 'center', height: '100vh', display: 'flex', alignItems: 'center' }}>
             <div className="card" style={{ textAlign: 'center', maxWidth: '400px', width: '90%' }}>
-                <div style={{ marginBottom: '30px' }}>
-                    <h1 style={{ marginBottom: '10px' }}>FinanSe</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Dados seguros na nuvem</p>
+                <div style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                    <img src="/logo1.png" alt="FinanSe" style={{ width: '180px', height: 'auto' }} />
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Dados seguros na nuvem</p>
                 </div>
                 <button
                     onClick={handleGoogleLogin}
