@@ -336,7 +336,7 @@ const Login = () => {
         <div className="container" style={{ justifyContent: 'center', height: '100vh', display: 'flex', alignItems: 'center' }}>
             <div className="card" style={{ textAlign: 'center', maxWidth: '400px', width: '90%' }}>
                 <div style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <img src="/logo1.png" alt="FinanSe" style={{ width: '180px', height: 'auto' }} />
+                    <img src="/logo4.png" alt="FinanSe" style={{ width: '180px', height: 'auto' }} />
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Dados seguros na nuvem</p>
                 </div>
                 <button
