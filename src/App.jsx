@@ -14,7 +14,7 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
     return (
         <header>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src="/logo5.png" alt="FinanSe" style={{ height: '35px', width: 'auto' }} />
+                <img src="/logo5.png" alt="FinanSe" style={{ height: '30px', width: 'auto' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
