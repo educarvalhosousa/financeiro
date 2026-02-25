@@ -13,7 +13,7 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
     const { currentUser, logout } = useFinance();
     return (
         <header>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 <img src="/logo5.png" alt="FinanSe" style={{ height: '30px', width: 'auto' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
