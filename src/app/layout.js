@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import "./globals.css";
 
 // Configurações de Identidade e PWA
@@ -10,21 +11,22 @@ export const metadata = {
         statusBarStyle: "black-translucent",
         title: "FinanSee Pro",
     },
-    icons: {
-        apple: "/icon-192x192.png",
-    },
-};
-
-// Configurações de Interface Mobile
-export const viewport = {
-    themeColor: "#000000",
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false, // Essencial para o feeling de app nativo
 };
 
 export default function RootLayout({ children }) {
+    useEffect(() => {
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker
+                .register("/sw.js")
+                .then((registration) => {
+                    console.log("Service Worker registered with scope:", registration.scope);
+                })
+                .catch((error) => {
+                    console.error("Service Worker registration failed:", error);
+                });
+        }
+    }, []);
+
     return (
         <html lang="pt-BR">
             <head>
