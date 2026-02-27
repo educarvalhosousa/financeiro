@@ -164,7 +164,7 @@ const CategoryManager = ({ isOpen, onClose }) => {
 };
 
 const FilterBar = () => {
-    const { filters, setFilters, categories } = useFinance();
+    const { filters, setFilters, categories, householdMembers } = useFinance();
 
     return (
         <div className="card" style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -180,7 +180,7 @@ const FilterBar = () => {
                 </select>
                 <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
                     <option value="all">Todos Membros</option>
-                    {useFinance().householdMembers.map(m => (
+                    {householdMembers.map(m => (
                         <option key={m.id} value={m.id}>{m.full_name?.split(' ')[0] || 'Membro'}</option>
                     ))}
                 </select>
@@ -217,7 +217,7 @@ const FilterBar = () => {
 };
 
 const TransactionList = () => {
-    const { transactions, removeTransaction } = useFinance();
+    const { transactions, removeTransaction, householdMembers } = useFinance();
 
     return (
         <div className="transactions-section" style={{ marginBottom: '80px' }}>
@@ -227,7 +227,7 @@ const TransactionList = () => {
                     <div className="empty-state">Nenhuma transação encontrada com estes filtros.</div>
                 ) : (
                     transactions.map(t => {
-                        const creator = useFinance().householdMembers.find(m => m.id === t.user_id);
+                        const creator = householdMembers.find(m => m.id === t.user_id);
                         return (
                             <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
                                 <div className="transaction-info">
@@ -322,7 +322,8 @@ const Login = () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
+                // ALTERAÇÃO FINAL: Retorna apenas para a Home (localhost ou vercel) para evitar 404
+                redirectTo: window.location.origin,
                 queryParams: {
                     access_type: 'offline',
                     prompt: 'consent',
