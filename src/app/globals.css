@@ -29,10 +29,19 @@ body {
     padding-bottom: 40px;
 }
 
+/* AJUSTE: Container agora é responsivo */
 .container {
-    max-width: 500px;
+    max-width: 1200px;
+    /* Largura máxima para Desktop */
     margin: 0 auto;
     padding: 10px 20px;
+}
+
+/* Mobile-first: No celular, tudo fica em uma coluna (máximo 500px) */
+@media (max-width: 1023px) {
+    .container {
+        max-width: 500px;
+    }
 }
 
 header {
@@ -40,7 +49,34 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
-    padding: 5px 0;
+    padding: 15px 0;
+    /* Aumentei um pouco o respiro */
+}
+
+/* ESTRUTURA DE GRID PARA DESKTOP */
+@media (min-width: 1024px) {
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        /* Esquerda larga, Direita para filtros/lista */
+        gap: 30px;
+        align-items: start;
+        margin-top: 20px;
+    }
+
+    .sidebar-content {
+        position: sticky;
+        top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 .card {
@@ -57,6 +93,13 @@ header {
     color: white;
     text-align: center;
     border: none;
+}
+
+/* Ajuste de fonte para o Saldo no PC */
+@media (min-width: 1024px) {
+    .balance-value {
+        font-size: 3.5rem !important;
+    }
 }
 
 .balance-label {

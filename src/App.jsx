@@ -66,7 +66,6 @@ const HouseholdManager = ({ isOpen, onClose }) => {
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
                 <h2 style={{ marginBottom: '20px' }}>Minha Casa</h2>
-
                 <div style={{ marginBottom: '30px', padding: '15px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Seu Código de Convite:</label>
                     <div style={{ display: 'flex', gap: '10px' }}>
@@ -84,11 +83,7 @@ const HouseholdManager = ({ isOpen, onClose }) => {
                             Copiar
                         </button>
                     </div>
-                    <p style={{ fontSize: '0.7rem', marginTop: '10px', color: 'var(--text-secondary)' }}>
-                        Envie este código para seu parceiro(a) para compartilharem as finanças.
-                    </p>
                 </div>
-
                 <div style={{ marginBottom: '20px' }}>
                     <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>Entrar em uma Casa</h3>
                     <form onSubmit={handleJoin} style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
@@ -102,7 +97,6 @@ const HouseholdManager = ({ isOpen, onClose }) => {
                     </form>
                     {status && <p style={{ fontSize: '0.8rem', marginTop: '10px', textAlign: 'center', color: status.startsWith('Erro') ? 'var(--accent-danger)' : 'var(--accent-primary)' }}>{status}</p>}
                 </div>
-
                 <button className="btn" style={{ background: 'var(--glass-bg)', width: '100%' }} onClick={onClose}>Fechar</button>
             </div>
         </div>
@@ -126,7 +120,6 @@ const CategoryManager = ({ isOpen, onClose }) => {
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
                 <h2 style={{ marginBottom: '20px' }}>Gerenciar Categorias</h2>
-
                 <form onSubmit={handleSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
                     <input
                         placeholder="Nova categoria..."
@@ -140,7 +133,6 @@ const CategoryManager = ({ isOpen, onClose }) => {
                     </select>
                     <button type="submit" className="btn btn-primary" style={{ width: '45px', padding: '10px' }}>+</button>
                 </form>
-
                 <div style={{ overflowY: 'auto', flex: 1 }}>
                     {categories.map((c, idx) => (
                         <div key={c.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--glass-border)', fontSize: '0.9rem' }}>
@@ -156,7 +148,6 @@ const CategoryManager = ({ isOpen, onClose }) => {
                         </div>
                     ))}
                 </div>
-
                 <button className="btn" style={{ marginTop: '20px', background: 'var(--glass-bg)' }} onClick={onClose}>Fechar</button>
             </div>
         </div>
@@ -176,7 +167,7 @@ const FilterBar = () => {
                     <option value="all">Todo o período</option>
                     <option value="month">Mês Atual</option>
                     <option value="week">Última Semana</option>
-                    <option value="custom">Personalizado (Calendário)</option>
+                    <option value="custom">Personalizado</option>
                 </select>
                 <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
                     <option value="all">Todos Membros</option>
@@ -189,27 +180,10 @@ const FilterBar = () => {
                     {categories.map((c, idx) => <option key={c.id || idx} value={c.name}>{c.name}</option>)}
                 </select>
             </div>
-
             {filters.period === 'custom' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.65rem' }}>De:</label>
-                        <input
-                            type="date"
-                            value={filters.startDate}
-                            onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-                            style={{ fontSize: '0.75rem', padding: '5px' }}
-                        />
-                    </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.65rem' }}>Até:</label>
-                        <input
-                            type="date"
-                            value={filters.endDate}
-                            onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-                            style={{ fontSize: '0.75rem', padding: '5px' }}
-                        />
-                    </div>
+                    <input type="date" value={filters.startDate} onChange={e => setFilters({ ...filters, startDate: e.target.value })} style={{ fontSize: '0.75rem', padding: '5px' }} />
+                    <input type="date" value={filters.endDate} onChange={e => setFilters({ ...filters, endDate: e.target.value })} style={{ fontSize: '0.75rem', padding: '5px' }} />
                 </div>
             )}
         </div>
@@ -220,11 +194,11 @@ const TransactionList = () => {
     const { transactions, removeTransaction, householdMembers } = useFinance();
 
     return (
-        <div className="transactions-section" style={{ marginBottom: '80px' }}>
+        <div className="transactions-section">
             <div className="section-title">Histórico</div>
             <div className="list-container">
                 {transactions.length === 0 ? (
-                    <div className="empty-state">Nenhuma transação encontrada com estes filtros.</div>
+                    <div className="empty-state">Sem transações.</div>
                 ) : (
                     transactions.map(t => {
                         const creator = householdMembers.find(m => m.id === t.user_id);
@@ -234,7 +208,7 @@ const TransactionList = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <span className="transaction-name">{t.name}</span>
                                         {creator && (
-                                            <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'var(--glass-bg)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
+                                            <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: 'var(--glass-bg)', borderRadius: '4px' }}>
                                                 {creator.full_name?.split(' ')[0]}
                                             </span>
                                         )}
@@ -242,9 +216,6 @@ const TransactionList = () => {
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                                         <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                                             <Calendar size={10} /> {new Date(t.date).toLocaleDateString('pt-BR')}
-                                        </span>
-                                        <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--accent-primary)' }}>
-                                            <Tag size={10} /> {t.category}
                                         </span>
                                     </div>
                                 </div>
@@ -286,7 +257,7 @@ const Modal = ({ isOpen, onClose }) => {
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Descrição</label>
-                        <input type="text" placeholder="Ex: Mercado, Salário..." value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+                        <input type="text" placeholder="Ex: Mercado..." value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
                     </div>
                     <div className="form-group">
                         <label>Valor (R$)</label>
@@ -310,7 +281,6 @@ const Modal = ({ isOpen, onClose }) => {
                         </div>
                     </div>
                     <button type="submit" className="btn btn-primary">Adicionar</button>
-                    <button type="button" className="btn" style={{ marginTop: '10px', background: 'transparent', color: 'var(--text-secondary)' }} onClick={onClose}>Cancelar</button>
                 </form>
             </div>
         </div>
@@ -319,27 +289,19 @@ const Modal = ({ isOpen, onClose }) => {
 
 const Login = () => {
     const handleGoogleLogin = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
+        await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                // ALTERAÇÃO FINAL: Retorna apenas para a Home (localhost ou vercel) para evitar 404
                 redirectTo: window.location.origin,
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
+                queryParams: { access_type: 'offline', prompt: 'consent' },
             }
         });
-        if (error) console.error('Erro no login:', error.message);
     };
 
     return (
         <div className="container" style={{ justifyContent: 'center', height: '100vh', display: 'flex', alignItems: 'center' }}>
             <div className="card" style={{ textAlign: 'center', maxWidth: '400px', width: '90%' }}>
-                <div style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <img src="/logo4.png" alt="FinanSe" style={{ width: '180px', height: 'auto' }} />
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Dados seguros na nuvem</p>
-                </div>
+                <img src="/logo4.png" alt="FinanSe" style={{ width: '180px', marginBottom: '30px' }} />
                 <button
                     onClick={handleGoogleLogin}
                     className="btn btn-primary"
@@ -348,9 +310,6 @@ const Login = () => {
                     <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px' }} />
                     Entrar com Google
                 </button>
-                <p style={{ marginTop: '20px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Acesse seus dados de qualquer computador de forma segura.
-                </p>
             </div>
         </div>
     );
@@ -378,24 +337,37 @@ export default function MainApp() {
                 onManageCategories={() => setIsCatModalOpen(true)}
                 onManageHousehold={() => setIsHouseholdModalOpen(true)}
             />
-            <div className="card balance-card">
-                <div className="balance-label">Saldo em Nuvem (Filtro)</div>
-                <div className="balance-value" style={{ fontSize: '2rem' }}>{formatCurrency(totals.balance)}</div>
-            </div>
-            <div className="row">
-                <div className="stat-item">
-                    <div className="stat-label">Receitas</div>
-                    <div className="stat-value income">{formatCurrency(totals.income)}</div>
-                </div>
-                <div className="stat-item">
-                    <div className="stat-label">Despesas</div>
-                    <div className="stat-value expense">{formatCurrency(totals.expense)}</div>
-                </div>
-            </div>
 
-            <DashboardCharts />
-            <FilterBar />
-            <TransactionList />
+            {/* ESTRUTURA DASHBOARD GRID */}
+            <div className="dashboard-grid">
+
+                {/* COLUNA PRINCIPAL */}
+                <div className="main-content">
+                    <div className="card balance-card">
+                        <div className="balance-label">Saldo em Nuvem (Filtro)</div>
+                        <div className="balance-value">{formatCurrency(totals.balance)}</div>
+                    </div>
+
+                    <div className="row">
+                        <div className="stat-item">
+                            <div className="stat-label">Receitas</div>
+                            <div className="stat-value income">{formatCurrency(totals.income)}</div>
+                        </div>
+                        <div className="stat-item">
+                            <div className="stat-label">Despesas</div>
+                            <div className="stat-value expense">{formatCurrency(totals.expense)}</div>
+                        </div>
+                    </div>
+
+                    <DashboardCharts />
+                </div>
+
+                {/* COLUNA LATERAL */}
+                <div className="sidebar-content">
+                    <FilterBar />
+                    <TransactionList />
+                </div>
+            </div>
 
             <button className="fab" onClick={() => setIsModalOpen(true)}>+</button>
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
