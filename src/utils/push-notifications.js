@@ -30,18 +30,16 @@ export async function subscribeUserToPush() {
         let subscription = await registration.pushManager.getSubscription();
 
         if (!subscription) {
-            // Check for VAPID key in environment variables if needed
-            // For now, using a standard subscription (might need public VAPID key later)
-            // subscription = await registration.pushManager.subscribe({
-            //     userVisibleOnly: true,
-            //     applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
-            // });
+            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (!vapidKey) {
+                console.error('VAPID public key not found in environment variables.');
+                return;
+            }
 
-            // Basic subscription for now (requires server key usually)
-            console.log('No subscription found. You might need to provide a VAPID public key to registration.pushManager.subscribe()');
-            // If we don't have VAPID keys yet, we might just be setting up the structure.
-            // But let's attempt a basic subscribe if possible, or at least log the need.
-            return;
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidKey)
+            });
         }
 
         // Save to Supabase

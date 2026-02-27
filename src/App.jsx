@@ -4,7 +4,6 @@ import { FinanceProvider, useFinance, DEFAULT_CATEGORIES } from './context/Finan
 import DashboardCharts from './components/Charts';
 import { Filter, LogOut, Calendar, Tag, Loader2, Users } from 'lucide-react';
 import { supabase } from './utils/supabase';
-import { subscribeUserToPush } from './utils/push-notifications';
 
 const formatCurrency = (value) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -369,12 +368,6 @@ export default function MainApp() {
             </div>
         );
     }
-
-    React.useEffect(() => {
-        if (currentUser) {
-            subscribeUserToPush();
-        }
-    }, [currentUser]);
 
     if (!currentUser) return <Login />;
 
