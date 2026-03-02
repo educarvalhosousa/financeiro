@@ -7,19 +7,39 @@ export async function GET(request) {
     if (!nfeUrl) return NextResponse.json({ error: 'URL ausente' }, { status: 400 });
 
     try {
-        const response = await fetch(nfeUrl);
+        const response = await fetch(nfeUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' } // Simula um navegador real
+        });
         const html = await response.text();
 
-        // Lógica de extração para o estado de São Paulo (SAT/NFC-e)
-        // Buscamos o Valor Total e o Nome da Loja no HTML
-        const totalMatch = html.match(/class="vTxtPagar">([\d,.]+)</);
-        const storeMatch = html.match(/class="txtTopo">([^<]+)</);
+        // 1. EXTRAÇÃO DO VALOR TOTAL (Tenta vários formatos da SEFAZ)
+        const valueRegex = /<span class="vTxtPagar">([\d,.]+)<\/span>|<span class="totalNFe">([\d,.]+)<\/span>|Valor total R\$:?\s*([\d,.]+)/i;
+        const valueMatch = html.match(valueRegex);
+        let extractedValue = "";
 
-        const value = totalMatch ? totalMatch[1].replace(',', '.') : '';
-        const name = storeMatch ? storeMatch[1].trim() : 'Compra via Nota Fiscal';
+        if (valueMatch) {
+            // Pega o primeiro grupo que não seja undefined e limpa
+            const rawValue = valueMatch[1] || valueMatch[2] || valueMatch[3];
+            extractedValue = rawValue.replace(/\./g, '').replace(',', '.');
+        }
 
-        return NextResponse.json({ name, value });
+        // 2. EXTRAÇÃO DO NOME DA LOJA (Razão Social)
+        const nameRegex = /<div class="txtTopo">([^<]+)<\/div>|<td class="txtLoja">([^<]+)<\/td>|Nome \/ Razão Social:?\s*([^<]+)/i;
+        const nameMatch = html.match(nameRegex);
+        let extractedName = "Compra via Nota Fiscal";
+
+        if (nameMatch) {
+            extractedName = (nameMatch[1] || nameMatch[2] || nameMatch[3]).trim();
+        }
+
+        console.log("DADOS EXTRAÍDOS:", { extractedName, extractedValue });
+
+        return NextResponse.json({
+            name: extractedName,
+            value: extractedValue
+        });
+
     } catch (error) {
-        return NextResponse.json({ error: 'Erro ao ler a nota' }, { status: 500 });
+        return NextResponse.json({ error: 'Erro ao conectar com a SEFAZ' }, { status: 500 });
     }
 }
