@@ -8,38 +8,61 @@ export async function GET(request) {
 
     try {
         const response = await fetch(nfeUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' } // Simula um navegador real
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+            }
         });
         const html = await response.text();
 
-        // 1. EXTRAÇÃO DO VALOR TOTAL (Tenta vários formatos da SEFAZ)
-        const valueRegex = /<span class="vTxtPagar">([\d,.]+)<\/span>|<span class="totalNFe">([\d,.]+)<\/span>|Valor total R\$:?\s*([\d,.]+)/i;
-        const valueMatch = html.match(valueRegex);
+        // --- BUSCA PELO VALOR TOTAL ---
+        // Tenta encontrar o valor após termos comuns como "Valor total", "vTxtPagar" ou "totalNFe"
+        const valuePatterns = [
+            /class="vTxtPagar">([\d,.]+)<\/span>/i,
+            /totalNFe">([\d,.]+)<\/span>/i,
+            /Valor total R\$:?\s*([\d,.]+)/i,
+            /valor_total">([\d,.]+)/i
+        ];
+
         let extractedValue = "";
-
-        if (valueMatch) {
-            // Pega o primeiro grupo que não seja undefined e limpa
-            const rawValue = valueMatch[1] || valueMatch[2] || valueMatch[3];
-            extractedValue = rawValue.replace(/\./g, '').replace(',', '.');
+        for (const pattern of valuePatterns) {
+            const match = html.match(pattern);
+            if (match) {
+                const raw = match[1] || match[2] || match[3] || match[4];
+                extractedValue = raw.replace(/\./g, '').replace(',', '.');
+                break;
+            }
         }
 
-        // 2. EXTRAÇÃO DO NOME DA LOJA (Razão Social)
-        const nameRegex = /<div class="txtTopo">([^<]+)<\/div>|<td class="txtLoja">([^<]+)<\/td>|Nome \/ Razão Social:?\s*([^<]+)/i;
-        const nameMatch = html.match(nameRegex);
+        // --- BUSCA PELO NOME DA LOJA ---
+        const namePatterns = [
+            /class="txtTopo">([^<]+)<\/div>/i,
+            /class="txtLoja">([^<]+)<\/td>/i,
+            /Nome \/ Razão Social:?\s*([^<]+)/i,
+            /txtRazaoSocial">([^<]+)/i
+        ];
+
         let extractedName = "Compra via Nota Fiscal";
-
-        if (nameMatch) {
-            extractedName = (nameMatch[1] || nameMatch[2] || nameMatch[3]).trim();
+        for (const pattern of namePatterns) {
+            const match = html.match(pattern);
+            if (match) {
+                extractedName = (match[1] || match[2] || match[3] || match[4]).trim();
+                break;
+            }
         }
 
-        console.log("DADOS EXTRAÍDOS:", { extractedName, extractedValue });
+        // Log de depuração no terminal (você verá isso no VS Code)
+        console.log("DEBUG - SEFAZ Extraído:", { extractedName, extractedValue });
 
-        return NextResponse.json({
-            name: extractedName,
-            value: extractedValue
-        });
+        if (!extractedValue) {
+            return NextResponse.json({ error: 'Valor não encontrado no HTML' }, { status: 404 });
+        }
+
+        return NextResponse.json({ name: extractedName, value: extractedValue });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Erro ao conectar com a SEFAZ' }, { status: 500 });
+        console.error("Erro na Proxy:", error);
+        return NextResponse.json({ error: 'Erro de conexão com SEFAZ' }, { status: 500 });
     }
 }
