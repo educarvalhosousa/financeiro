@@ -10,6 +10,7 @@ const formatCurrency = (value) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
 
+// --- COMPONENTE: CABEÇALHO ---
 const Header = ({ onManageCategories, onManageHousehold }) => {
     const { currentUser, logout } = useFinance();
     return (
@@ -36,6 +37,7 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
     );
 };
 
+// --- COMPONENTE: GERENCIADOR DE CASA (MEMBROS) ---
 const HouseholdManager = ({ isOpen, onClose }) => {
     const { currentUser, joinHousehold } = useFinance();
     const [inviteCode, setInviteCode] = useState('');
@@ -68,12 +70,13 @@ const HouseholdManager = ({ isOpen, onClose }) => {
                     <button type="submit" className="btn btn-primary">Vincular Contas</button>
                 </form>
                 {status && <p className="status-msg">{status}</p>}
-                <button className="btn btn-secondary" onClick={onClose}>Fechar</button>
+                <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '10px' }}>Fechar</button>
             </div>
         </div>
     );
 };
 
+// --- COMPONENTE: GERENCIADOR DE CATEGORIAS ---
 const CategoryManager = ({ isOpen, onClose }) => {
     const { categories, addCategory, removeCategory } = useFinance();
     const [newCat, setNewCat] = useState({ name: '', type: 'expense' });
@@ -109,8 +112,9 @@ const CategoryManager = ({ isOpen, onClose }) => {
     );
 };
 
+// --- COMPONENTE: BARRA DE FILTROS ---
 const FilterBar = () => {
-    const { filters, setFilters, categories, householdMembers } = useFinance();
+    const { filters, setFilters, householdMembers } = useFinance();
     return (
         <div className="card filter-card">
             <div className="card-header"><Filter size={16} /> Filtros</div>
@@ -128,6 +132,7 @@ const FilterBar = () => {
     );
 };
 
+// --- COMPONENTE: LISTA DE TRANSAÇÕES ---
 const TransactionList = () => {
     const { transactions, removeTransaction } = useFinance();
     return (
@@ -152,6 +157,7 @@ const TransactionList = () => {
     );
 };
 
+// --- COMPONENTE: MODAL DE LANÇAMENTO (COM SCANNER E CATEGORIZAÇÃO) ---
 const Modal = ({ isOpen, onClose }) => {
     const { addTransaction, categories } = useFinance();
     const [form, setForm] = useState({ name: '', value: '', type: 'expense', category: DEFAULT_CATEGORIES[0].name });
@@ -160,24 +166,21 @@ const Modal = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    // --- NOVA LÓGICA DE CATEGORIZAÇÃO ---
+    // Lógica Inteligente de Sugestão de Categoria (Franca/SP)
     const suggestCategory = (storeName) => {
         const name = storeName.toLowerCase();
-
         const mapping = {
-            'Alimentação': ['mercado', 'supermercado', 'savegnago', 'extra', 'carrefour', 'pao de acucar', 'açougue', 'padaria', 'atacadao'],
-            'Transporte': ['posto', 'shell', 'ipiranga', 'petrobras', 'combustivel', 'uber', '99app', 'estacionamento'],
-            'Saúde': ['farmacia', 'droga', 'raia', 'drogasil', 'hospital', 'clinica', 'unimed'],
-            'Lazer': ['restaurante', 'bar', 'lanchonete', 'cinema', 'ifood', 'netflix', 'spotify'],
-            'Casa': ['leroy', 'madeiranit', 'eletro', 'moveis', 'cpfl', 'sabesp']
+            'Alimentação': ['mercado', 'supermercado', 'savegnago', 'extra', 'carrefour', 'pao de acucar', 'açougue', 'padaria', 'atacadao', 'varejão', 'tonin'],
+            'Transporte': ['posto', 'shell', 'ipiranga', 'petrobras', 'combustivel', 'uber', '99app', 'estacionamento', 'gasolina', 'etanol'],
+            'Saúde': ['farmacia', 'droga', 'raia', 'drogasil', 'hospital', 'clinica', 'unimed', 'odontoclinic'],
+            'Lazer': ['restaurante', 'bar', 'lanchonete', 'cinema', 'ifood', 'netflix', 'spotify', 'sorveteria', 'churrascaria'],
+            'Casa': ['leroy', 'madeiranit', 'eletro', 'moveis', 'cpfl', 'sabesp', 'internet', 'claro', 'vivo']
         };
 
         for (const [category, keywords] of Object.entries(mapping)) {
-            if (keywords.some(keyword => name.includes(keyword))) {
-                return category;
-            }
+            if (keywords.some(keyword => name.includes(keyword))) return category;
         }
-        return 'Outros'; // Categoria padrão caso não encontre
+        return 'Outros';
     };
 
     const handleScanSuccess = async (url) => {
@@ -188,22 +191,16 @@ const Modal = ({ isOpen, onClose }) => {
             const data = await response.json();
 
             if (data.value) {
-                // Aqui a mágica acontece: nome, valor e categoria automática!
                 const detectedCategory = suggestCategory(data.name);
-
                 setForm(prev => ({
                     ...prev,
                     name: data.name,
                     value: data.value,
-                    category: detectedCategory // Sugestão automática aplicada
+                    category: detectedCategory
                 }));
-
-                console.log(`Loja: ${data.name} | Categoria Sugerida: ${detectedCategory}`);
-            } else {
-                alert("Dados capturados, mas valor não identificado.");
             }
         } catch (error) {
-            alert("Erro ao processar a nota fiscal.");
+            alert("Erro ao ler dados da SEFAZ.");
         } finally {
             setIsExtracting(false);
         }
@@ -222,22 +219,25 @@ const Modal = ({ isOpen, onClose }) => {
             <div className="modal-content">
                 <h2>Novo Lançamento</h2>
 
+                {/* ÁREA DO SCANNER REVISADA */}
                 {!showScanner ? (
-                    <button onClick={() => setShowScanner(true)} className="btn btn-scan" disabled={isExtracting} style={{ width: '100%', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px', borderRadius: '12px', background: 'var(--glass-bg)', border: '1px solid var(--accent-primary)', color: 'white' }}>
+                    <button onClick={() => setShowScanner(true)} className="btn btn-scan" disabled={isExtracting} style={{ width: '100%', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'var(--glass-bg)', border: '1px solid var(--accent-primary)', color: 'white', padding: '12px', borderRadius: '12px' }}>
                         {isExtracting ? <Loader2 className="animate-spin" size={18} /> : <QrCode size={18} />}
                         {isExtracting ? "Processando..." : "Escanear Nota Fiscal"}
                     </button>
                 ) : (
                     <div style={{ marginBottom: '20px' }}>
                         <QrScanner onScanSuccess={handleScanSuccess} />
-                        <button onClick={() => setShowScanner(false)} className="btn" style={{ width: '100%', background: 'transparent', color: 'var(--accent-danger)' }}>Cancelar</button>
+                        <button onClick={() => setShowScanner(false)} className="btn" style={{ width: '100%', background: 'transparent', color: 'var(--accent-danger)', marginTop: '10px' }}>
+                            Cancelar Scanner
+                        </button>
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="stack" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <div className="form-group">
                         <label>Descrição</label>
-                        <input type="text" placeholder="Onde comprou?" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+                        <input type="text" placeholder="Onde foi gasto?" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
                     </div>
                     <div className="form-group">
                         <label>Valor (R$)</label>
@@ -254,13 +254,11 @@ const Modal = ({ isOpen, onClose }) => {
                         <div className="form-group" style={{ flex: 1 }}>
                             <label>Categoria</label>
                             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                                {categories.filter(c => c.type === form.type).map(c => (
-                                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
-                                ))}
+                                {categories.filter(c => c.type === form.type).map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
                             </select>
                         </div>
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }}>Adicionar Lançamento</button>
+                    <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }}>Adicionar</button>
                     <button type="button" className="btn btn-text" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)' }}>Cancelar</button>
                 </form>
             </div>
@@ -268,6 +266,7 @@ const Modal = ({ isOpen, onClose }) => {
     );
 };
 
+// --- COMPONENTE: LOGIN ---
 const Login = () => {
     const handleGoogleLogin = async () => {
         await supabase.auth.signInWithOAuth({
@@ -288,6 +287,7 @@ const Login = () => {
     );
 };
 
+// --- APP PRINCIPAL (EXPORT DEFAULT) ---
 export default function MainApp() {
     const { currentUser, totals, isLoading } = useFinance();
     const [modals, setModals] = useState({ add: false, cat: false, house: false });
@@ -297,7 +297,10 @@ export default function MainApp() {
 
     return (
         <div className="container">
-            <Header onManageCategories={() => setModals({ ...modals, cat: true })} onManageHousehold={() => setModals({ ...modals, house: true })} />
+            <Header
+                onManageCategories={() => setModals({ ...modals, cat: true })}
+                onManageHousehold={() => setModals({ ...modals, house: true })}
+            />
 
             <div className="dashboard-grid">
                 <div className="main-content">

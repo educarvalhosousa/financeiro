@@ -1,35 +1,44 @@
 "use client"
-import React, { useEffect } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import React, { useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const QrScanner = ({ onScanSuccess }) => {
-    useEffect(() => {
-        const scanner = new Html5QrcodeScanner('reader', {
-            qrbox: { width: 250, height: 250 },
-            fps: 10,
-            rememberLastUsedCamera: true,
-            aspectRatio: 1.0
-        });
+    const scannerRef = useRef(null);
 
-        scanner.render(
+    useEffect(() => {
+        const html5QrCode = new Html5Qrcode("reader");
+        scannerRef.current = html5QrCode;
+
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+        };
+
+        // Inicia direto na câmera traseira sem pedir seleção
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
             (decodedText) => {
-                scanner.clear().catch(err => console.error("Erro ao limpar scanner", err));
-                onScanSuccess(decodedText);
+                html5QrCode.stop().then(() => {
+                    onScanSuccess(decodedText);
+                });
             },
-            (error) => { /* Ignora erros de foco */ }
-        );
+            () => { /* Erros de foco ignorados */ }
+        ).catch(err => console.error("Erro na câmera:", err));
 
         return () => {
-            scanner.clear().catch(err => console.error("Erro ao fechar scanner", err));
+            if (scannerRef.current?.isScanning) {
+                scannerRef.current.stop().catch(err => console.error(err));
+            }
         };
     }, [onScanSuccess]);
 
     return (
-        <div style={{ background: 'var(--card-bg)', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)', marginBottom: '15px' }}>
-            <div id="reader" style={{ width: '100%', overflow: 'hidden', borderRadius: '8px' }}></div>
-            <p style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '10px', color: 'var(--text-secondary)' }}>
-                Posicione o QR Code da nota no quadrado
-            </p>
+        <div style={{ position: 'relative', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#000' }}>
+            <div id="reader" style={{ width: '100%' }}></div>
+            <div style={{ position: 'absolute', bottom: '10px', width: '100%', textAlign: 'center', color: 'white', fontSize: '0.8rem', background: 'rgba(0,0,0,0.5)', padding: '5px 0' }}>
+                Aponte para o QR Code da nota fiscal
+            </div>
         </div>
     );
 };
