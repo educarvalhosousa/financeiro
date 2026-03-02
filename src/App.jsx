@@ -18,17 +18,17 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
                 <img src="/logo6.png" alt="FinanSe" style={{ height: '35px', width: 'auto' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button onClick={onManageHousehold} style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }} title="Configurações da Casa">
+                <button onClick={onManageHousehold} className="btn-icon" title="Configurações da Casa">
                     <Users size={16} />
                 </button>
-                <button onClick={onManageCategories} style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }} title="Gerenciar Categorias">
+                <button onClick={onManageCategories} className="btn-icon" title="Gerenciar Categorias">
                     <Tag size={16} />
                 </button>
-                <div style={{ background: 'var(--accent-primary)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {currentUser.picture && <img src={currentUser.picture} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />}
+                <div className="user-badge">
+                    {currentUser.picture && <img src={currentUser.picture} alt="" className="user-avatar" />}
                     {currentUser.name}
                 </div>
-                <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                <button onClick={logout} className="btn-logout">
                     <LogOut size={18} />
                 </button>
             </div>
@@ -58,19 +58,17 @@ const HouseholdManager = ({ isOpen, onClose }) => {
     return (
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
-                <h2 style={{ marginBottom: '20px' }}>Minha Casa</h2>
-                <div style={{ marginBottom: '30px', padding: '15px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Seu Código de Convite:</label>
-                    <code style={{ background: '#000', padding: '10px', borderRadius: '8px', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>
-                        {currentUser.household_id || 'Carregando...'}
-                    </code>
+                <h2>Minha Casa</h2>
+                <div className="code-box">
+                    <label>Seu Código de Convite:</label>
+                    <code>{currentUser.household_id || 'Carregando...'}</code>
                 </div>
-                <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <form onSubmit={handleJoin} className="stack">
                     <input placeholder="Cole o código do parceiro..." value={inviteCode} onChange={e => setInviteCode(e.target.value)} required />
                     <button type="submit" className="btn btn-primary">Vincular Contas</button>
                 </form>
-                {status && <p style={{ fontSize: '0.8rem', marginTop: '10px', textAlign: 'center' }}>{status}</p>}
-                <button className="btn" style={{ background: 'var(--glass-bg)', width: '100%', marginTop: '15px' }} onClick={onClose}>Fechar</button>
+                {status && <p className="status-msg">{status}</p>}
+                <button className="btn btn-secondary" onClick={onClose}>Fechar</button>
             </div>
         </div>
     );
@@ -91,25 +89,21 @@ const CategoryManager = ({ isOpen, onClose }) => {
 
     return (
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
-            <div className="modal-content" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-                <h2 style={{ marginBottom: '20px' }}>Categorias</h2>
-                <form onSubmit={handleSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                    <input placeholder="Nova categoria..." value={newCat.name} onChange={e => setNewCat({ ...newCat, name: e.target.value })} style={{ flex: 1 }} />
-                    <select value={newCat.type} onChange={e => setNewCat({ ...newCat, type: e.target.value })} style={{ width: '100px' }}>
-                        <option value="income">Rec</option>
-                        <option value="expense">Des</option>
-                    </select>
-                    <button type="submit" className="btn btn-primary" style={{ width: '45px' }}>+</button>
+            <div className="modal-content scrollable">
+                <h2>Categorias</h2>
+                <form onSubmit={handleSubmit} className="row">
+                    <input placeholder="Nova..." value={newCat.name} onChange={e => setNewCat({ ...newCat, name: e.target.value })} style={{ flex: 1 }} />
+                    <button type="submit" className="btn btn-primary">+</button>
                 </form>
-                <div style={{ overflowY: 'auto', flex: 1 }}>
+                <div className="list">
                     {categories.map((c, idx) => (
-                        <div key={c.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--glass-border)' }}>
-                            <span>{c.name}</span>
-                            <button onClick={() => removeCategory(c.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)' }}>✕</button>
+                        <div key={c.id || idx} className="list-item">
+                            <span>{c.name} ({c.type === 'income' ? 'Rec' : 'Des'})</span>
+                            <button onClick={() => removeCategory(c.id)} className="btn-delete">✕</button>
                         </div>
                     ))}
                 </div>
-                <button className="btn" style={{ marginTop: '20px', background: 'var(--glass-bg)' }} onClick={onClose}>Fechar</button>
+                <button className="btn btn-secondary" onClick={onClose}>Fechar</button>
             </div>
         </div>
     );
@@ -118,11 +112,9 @@ const CategoryManager = ({ isOpen, onClose }) => {
 const FilterBar = () => {
     const { filters, setFilters, categories, householdMembers } = useFinance();
     return (
-        <div className="card" style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', fontWeight: '600' }}>
-                <Filter size={16} /> Filtros
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div className="card filter-card">
+            <div className="card-header"><Filter size={16} /> Filtros</div>
+            <div className="filter-grid">
                 <select value={filters.period} onChange={e => setFilters({ ...filters, period: e.target.value })}>
                     <option value="all">Todo o período</option>
                     <option value="month">Mês Atual</option>
@@ -143,7 +135,7 @@ const TransactionList = () => {
             <div className="section-title">Histórico</div>
             <div className="list-container">
                 {transactions.length === 0 ? (
-                    <div className="empty-state">Nenhuma transação encontrada.</div>
+                    <div className="empty-state">Sem transações.</div>
                 ) : (
                     transactions.map(t => (
                         <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
@@ -164,43 +156,94 @@ const Modal = ({ isOpen, onClose }) => {
     const { addTransaction, categories } = useFinance();
     const [form, setForm] = useState({ name: '', value: '', type: 'expense', category: DEFAULT_CATEGORIES[0].name });
     const [showScanner, setShowScanner] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleScanSuccess = (url) => {
+    // --- NOVA LÓGICA DE CATEGORIZAÇÃO ---
+    const suggestCategory = (storeName) => {
+        const name = storeName.toLowerCase();
+
+        const mapping = {
+            'Alimentação': ['mercado', 'supermercado', 'savegnago', 'extra', 'carrefour', 'pao de acucar', 'açougue', 'padaria', 'atacadao'],
+            'Transporte': ['posto', 'shell', 'ipiranga', 'petrobras', 'combustivel', 'uber', '99app', 'estacionamento'],
+            'Saúde': ['farmacia', 'droga', 'raia', 'drogasil', 'hospital', 'clinica', 'unimed'],
+            'Lazer': ['restaurante', 'bar', 'lanchonete', 'cinema', 'ifood', 'netflix', 'spotify'],
+            'Casa': ['leroy', 'madeiranit', 'eletro', 'moveis', 'cpfl', 'sabesp']
+        };
+
+        for (const [category, keywords] of Object.entries(mapping)) {
+            if (keywords.some(keyword => name.includes(keyword))) {
+                return category;
+            }
+        }
+        return 'Outros'; // Categoria padrão caso não encontre
+    };
+
+    const handleScanSuccess = async (url) => {
         setShowScanner(false);
-        alert("Nota capturada com sucesso! Link: " + url);
-        console.log("Link NFC-e:", url);
+        setIsExtracting(true);
+        try {
+            const response = await fetch(`/api/proxy-nfe?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+
+            if (data.value) {
+                // Aqui a mágica acontece: nome, valor e categoria automática!
+                const detectedCategory = suggestCategory(data.name);
+
+                setForm(prev => ({
+                    ...prev,
+                    name: data.name,
+                    value: data.value,
+                    category: detectedCategory // Sugestão automática aplicada
+                }));
+
+                console.log(`Loja: ${data.name} | Categoria Sugerida: ${detectedCategory}`);
+            } else {
+                alert("Dados capturados, mas valor não identificado.");
+            }
+        } catch (error) {
+            alert("Erro ao processar a nota fiscal.");
+        } finally {
+            setIsExtracting(false);
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.name || !form.value) return;
         await addTransaction({ ...form, value: parseFloat(form.value) });
-        setForm({ ...form, name: '', value: '' });
+        setForm({ name: '', value: '', type: 'expense', category: DEFAULT_CATEGORIES[0].name });
         onClose();
     };
 
     return (
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
-                <h2 style={{ marginBottom: '24px' }}>Novo Lançamento</h2>
+                <h2>Novo Lançamento</h2>
 
                 {!showScanner ? (
-                    <button onClick={() => setShowScanner(true)} className="btn" style={{ marginBottom: '20px', background: 'var(--glass-bg)', border: '1px solid var(--accent-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                        <QrCode size={18} /> Escanear Nota Fiscal
+                    <button onClick={() => setShowScanner(true)} className="btn btn-scan" disabled={isExtracting} style={{ width: '100%', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px', borderRadius: '12px', background: 'var(--glass-bg)', border: '1px solid var(--accent-primary)', color: 'white' }}>
+                        {isExtracting ? <Loader2 className="animate-spin" size={18} /> : <QrCode size={18} />}
+                        {isExtracting ? "Processando..." : "Escanear Nota Fiscal"}
                     </button>
                 ) : (
                     <div style={{ marginBottom: '20px' }}>
                         <QrScanner onScanSuccess={handleScanSuccess} />
-                        <button onClick={() => setShowScanner(false)} className="btn" style={{ background: 'transparent', color: 'var(--accent-danger)' }}>Cancelar Scanner</button>
+                        <button onClick={() => setShowScanner(false)} className="btn" style={{ width: '100%', background: 'transparent', color: 'var(--accent-danger)' }}>Cancelar</button>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group"><label>Descrição</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
-                    <div className="form-group"><label>Valor (R$)</label><input type="number" step="0.01" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })} required /></div>
-                    <div className="row">
+                <form onSubmit={handleSubmit} className="stack" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    <div className="form-group">
+                        <label>Descrição</label>
+                        <input type="text" placeholder="Onde comprou?" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" step="0.01" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })} required />
+                    </div>
+                    <div className="row" style={{ display: 'flex', gap: '10px' }}>
                         <div className="form-group" style={{ flex: 1 }}>
                             <label>Tipo</label>
                             <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -211,12 +254,14 @@ const Modal = ({ isOpen, onClose }) => {
                         <div className="form-group" style={{ flex: 1 }}>
                             <label>Categoria</label>
                             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                                {categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                {categories.filter(c => c.type === form.type).map(c => (
+                                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
-                    <button type="submit" className="btn btn-primary">Adicionar Lançamento</button>
-                    <button type="button" className="btn" style={{ background: 'transparent', color: 'var(--text-secondary)', marginTop: '10px' }} onClick={onClose}>Cancelar</button>
+                    <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }}>Adicionar Lançamento</button>
+                    <button type="button" className="btn btn-text" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)' }}>Cancelar</button>
                 </form>
             </div>
         </div>
@@ -227,19 +272,15 @@ const Login = () => {
     const handleGoogleLogin = async () => {
         await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: window.location.origin,
-                queryParams: { access_type: 'offline', prompt: 'consent' },
-            }
+            options: { redirectTo: window.location.origin }
         });
     };
-
     return (
-        <div className="container" style={{ justifyContent: 'center', height: '100vh', display: 'flex', alignItems: 'center' }}>
-            <div className="card" style={{ textAlign: 'center', maxWidth: '400px', width: '90%' }}>
-                <img src="/logo4.png" alt="FinanSe" style={{ width: '180px', marginBottom: '30px' }} />
-                <button onClick={handleGoogleLogin} className="btn btn-primary" style={{ background: '#fff', color: '#000', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px' }} />
+        <div className="login-container">
+            <div className="login-card">
+                <img src="/logo4.png" alt="FinanSe" className="login-logo" />
+                <button onClick={handleGoogleLogin} className="btn-google">
+                    <img src="https://www.google.com/favicon.ico" alt="" />
                     Entrar com Google
                 </button>
             </div>
@@ -249,26 +290,14 @@ const Login = () => {
 
 export default function MainApp() {
     const { currentUser, totals, isLoading } = useFinance();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCatModalOpen, setIsCatModalOpen] = useState(false);
-    const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState(false);
+    const [modals, setModals] = useState({ add: false, cat: false, house: false });
 
-    if (isLoading) {
-        return (
-            <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Loader2 className="animate-spin" size={48} color="var(--accent-primary)" />
-            </div>
-        );
-    }
-
+    if (isLoading) return <div className="loader-screen"><Loader2 className="animate-spin" size={48} /></div>;
     if (!currentUser) return <Login />;
 
     return (
         <div className="container">
-            <Header
-                onManageCategories={() => setIsCatModalOpen(true)}
-                onManageHousehold={() => setIsHouseholdModalOpen(true)}
-            />
+            <Header onManageCategories={() => setModals({ ...modals, cat: true })} onManageHousehold={() => setModals({ ...modals, house: true })} />
 
             <div className="dashboard-grid">
                 <div className="main-content">
@@ -277,28 +306,21 @@ export default function MainApp() {
                         <div className="balance-value">{formatCurrency(totals.balance)}</div>
                     </div>
                     <div className="row">
-                        <div className="stat-item">
-                            <div className="stat-label">Receitas</div>
-                            <div className="stat-value income">{formatCurrency(totals.income)}</div>
-                        </div>
-                        <div className="stat-item">
-                            <div className="stat-label">Despesas</div>
-                            <div className="stat-value expense">{formatCurrency(totals.expense)}</div>
-                        </div>
+                        <div className="stat-item"><div className="stat-label">Receitas</div><div className="stat-value income">{formatCurrency(totals.income)}</div></div>
+                        <div className="stat-item"><div className="stat-label">Despesas</div><div className="stat-value expense">{formatCurrency(totals.expense)}</div></div>
                     </div>
                     <DashboardCharts />
                 </div>
-
                 <div className="sidebar-content">
                     <FilterBar />
                     <TransactionList />
                 </div>
             </div>
 
-            <button className="fab" onClick={() => setIsModalOpen(true)}>+</button>
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-            <CategoryManager isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} />
-            <HouseholdManager isOpen={isHouseholdModalOpen} onClose={() => setIsHouseholdModalOpen(false)} />
+            <button className="fab" onClick={() => setModals({ ...modals, add: true })}>+</button>
+            <Modal isOpen={modals.add} onClose={() => setModals({ ...modals, add: false })} />
+            <CategoryManager isOpen={modals.cat} onClose={() => setModals({ ...modals, cat: false })} />
+            <HouseholdManager isOpen={modals.house} onClose={() => setModals({ ...modals, house: false })} />
         </div>
     );
 }
