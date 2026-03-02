@@ -9,32 +9,34 @@ export async function GET(request) {
     try {
         const response = await fetch(nfeUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
         });
         const html = await response.text();
 
-        // 1. Procura por valores monetários formatados (ex: 12,50 ou 1.250,00)
-        // Focamos em valores que venham logo após termos de "Total"
-        const valueRegex = /(?:Valor total R\$|vTxtPagar|totalNFe)[^>]*>([\d,.]+)</i;
-        const valueMatch = html.match(valueRegex);
+        // 1. Extração do Nome da Loja (Focado na classe txtTopo da SEFAZ-SP)
+        const nameRegex = /<div[^>]*class="txtTopo"[^>]*>([^<]+)<\/div>/i;
+        const nameMatch = html.match(nameRegex);
+        let extractedName = "Compra via Nota Fiscal";
 
+        if (nameMatch && nameMatch[1]) {
+            extractedName = nameMatch[1].trim();
+        }
+
+        // 2. Extração do Valor Total (Focado na classe vTxtPagar da SEFAZ-SP)
+        const valueRegex = /<span[^>]*class="vTxtPagar"[^>]*>([\d,.]+)<\/span>/i;
+        const valueMatch = html.match(valueRegex);
         let extractedValue = "";
-        if (valueMatch) {
+
+        if (valueMatch && valueMatch[1]) {
+            // Converte o formato brasileiro "12,50" para o formato do sistema "12.50"
             extractedValue = valueMatch[1].replace(/\./g, '').replace(',', '.');
         }
 
-        // 2. Procura pelo nome da empresa (geralmente na classe txtTopo ou txtLoja)
-        const nameRegex = /(?:class="txtTopo"|class="txtLoja"|Razão Social)[^>]*>([^<]+)</i;
-        const nameMatch = html.match(nameRegex);
-
-        let extractedName = "Compra via Nota Fiscal";
-        if (nameMatch) {
-            extractedName = nameMatch[1].trim().replace(/\s+/g, ' ');
-        }
-
-        // Se não achou nada, vamos logar o status para depurar
-        console.log(`[Proxy] Status: ${response.status} | Valor: ${extractedValue}`);
+        // Log para você conferir no terminal do VS Code
+        console.log("--- NOTA FISCAL SP DETECTADA ---");
+        console.log("Loja:", extractedName);
+        console.log("Valor:", extractedValue);
 
         return NextResponse.json({
             name: extractedName,
@@ -42,6 +44,6 @@ export async function GET(request) {
         });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Falha na conexão' }, { status: 500 });
+        return NextResponse.json({ error: 'Erro de conexão com a SEFAZ' }, { status: 500 });
     }
 }
