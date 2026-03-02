@@ -142,27 +142,23 @@ const Modal = ({ isOpen, onClose }) => {
         setShowScanner(false);
         setIsExtracting(true);
         try {
-            // Faz a chamada para a nossa API de Proxy
             const response = await fetch(`/api/proxy-nfe?url=${encodeURIComponent(url)}`);
             const data = await response.json();
 
             if (data.value && data.value !== "") {
                 const detectedCategory = suggestCategory(data.name);
-
-                // Preenche o formulário com o que veio da SEFAZ
                 setForm(prev => ({
                     ...prev,
                     name: data.name,
-                    value: data.value, // O valor já vem formatado como 0.00
+                    value: data.value,
                     category: detectedCategory
                 }));
-
-                console.log("Sucesso no preenchimento!", data);
             } else {
-                alert("O scanner leu o link, mas a SEFAZ não devolveu o valor. Tente digitar manualmente.");
+                // AJUSTE AQUI: Agora ele vai te mostrar o link que leu!
+                console.log("Link lido:", url);
+                alert(`A SEFAZ não devolveu os dados.\n\nLink lido: ${url.substring(0, 50)}...`);
             }
         } catch (error) {
-            console.error("Erro na API:", error);
             alert("Erro técnico ao processar a nota.");
         } finally {
             setIsExtracting(false);
