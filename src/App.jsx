@@ -10,30 +10,29 @@ const formatCurrency = (value) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
 
-// --- CABEÇALHO RESTAURADO (PRINT 2) ---
+// --- CABEÇALHO (RESTAURADO ESTILO PRINT 2) ---
 const Header = ({ onManageCategories, onManageHousehold }) => {
     const { currentUser, logout } = useFinance();
     return (
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <img src="/logo6.png" alt="FinanSee" style={{ height: '32px' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button onClick={onManageHousehold} className="btn-icon-glass" title="Membros"><Users size={18} /></button>
-                <button onClick={onManageCategories} className="btn-icon-glass" title="Categorias"><Tag size={18} /></button>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+            <img src="/logo6.png" alt="FinanSee" style={{ height: '30px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button onClick={onManageHousehold} className="btn-icon-glass" style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}><Users size={18} /></button>
+                <button onClick={onManageCategories} className="btn-icon-glass" style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}><Tag size={18} /></button>
 
-                <div className="user-pill-badge">
-                    {currentUser.picture && <img src={currentUser.picture} alt="" className="user-avatar-small" />}
-                    <span className="user-name-text">{currentUser.name}</span>
+                {/* Badge Perfil Pílula */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--accent-primary)', padding: '5px 12px', borderRadius: '25px', fontSize: '14px', fontWeight: '500' }}>
+                    {currentUser.picture && <img src={currentUser.picture} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%' }} />}
+                    <span>{currentUser.name}</span>
                 </div>
 
-                <button onClick={logout} className="btn-exit-glass"><LogOut size={18} /></button>
+                <button onClick={logout} style={{ color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', padding: '5px' }}><LogOut size={20} /></button>
             </div>
         </header>
     );
 };
 
-// --- GERENCIADOR DE CASA COM BOTÃO COPIAR ---
+// --- GERENCIADOR DE CASA (COM BOTÃO COPIAR) ---
 const HouseholdManager = ({ isOpen, onClose }) => {
     const { currentUser, joinHousehold } = useFinance();
     const [inviteCode, setInviteCode] = useState('');
@@ -50,70 +49,72 @@ const HouseholdManager = ({ isOpen, onClose }) => {
     return (
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
-                <h2>Gerenciar Casa</h2>
-                <div className="invite-box-container">
-                    <label>Seu Código de Convite</label>
-                    <div className="copy-field">
-                        <code>{currentUser.household_id}</code>
-                        <button onClick={handleCopy} className="btn-copy">
-                            {copied ? <Check size={16} color="#10b981" /> : <Copy size={16} />}
+                <h2 style={{ marginBottom: '20px' }}>Membros da Casa</h2>
+                <div style={{ background: '#000', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #333' }}>
+                    <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Seu Código de Convite:</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <code style={{ fontSize: '14px', color: '#fff' }}>{currentUser.household_id}</code>
+                        <button onClick={handleCopy} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>
+                            {copied ? <Check size={16} color="#4ade80" /> : <Copy size={16} />}
                         </button>
                     </div>
                 </div>
-                <div className="divider">ou entre em uma casa</div>
-                <form onSubmit={async (e) => { e.preventDefault(); await joinHousehold(inviteCode); onClose(); }} className="stack">
-                    <input placeholder="Código do parceiro..." value={inviteCode} onChange={e => setInviteCode(e.target.value)} />
-                    <button type="submit" className="btn btn-primary">Vincular</button>
+                <form onSubmit={async (e) => { e.preventDefault(); await joinHousehold(inviteCode); onClose(); }} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input placeholder="Código do parceiro..." value={inviteCode} onChange={e => setInviteCode(e.target.value)} style={{ padding: '12px', borderRadius: '8px' }} />
+                    <button type="submit" className="btn btn-primary">Vincular Agora</button>
                 </form>
-                <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '10px' }}>Fechar</button>
+                <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '10px', width: '100%' }}>Fechar</button>
             </div>
         </div>
     );
 };
 
-// --- FILTRO BAR RESTAURADO COM DATA PERSONALIZADA (PRINT 2) ---
+// --- FILTRO BAR (RESTAURADO ESTILO PRINT 2 - SEM GRUDAR) ---
 const FilterBar = () => {
     const { filters, setFilters, categories, householdMembers } = useFinance();
-
     return (
-        <div className="card filter-card-container">
-            <div className="card-header-row"><Filter size={16} /> Filtros</div>
-            <div className="filter-controls-stack">
-                <div className="filter-row-top">
-                    <select value={filters.period} onChange={e => setFilters({ ...filters, period: e.target.value })}>
-                        <option value="month">Mês Atual</option>
-                        <option value="all">Todo o período</option>
-                        <option value="custom">Personalizado</option>
-                    </select>
-                    <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })}>
-                        <option value="all">Todos Membros</option>
-                        {householdMembers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-                    </select>
-                </div>
+        <div className="card" style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '600', color: '#fff' }}>
+                <Filter size={16} /> Filtros
+            </div>
 
-                {filters.period === 'custom' && (
-                    <div className="filter-row-dates animate-in">
-                        <div className="date-input-group">
-                            <Calendar size={14} />
-                            <input type="date" value={filters.startDate || ''} onChange={e => setFilters({ ...filters, startDate: e.target.value })} />
-                        </div>
-                        <div className="date-input-group">
-                            <Calendar size={14} />
-                            <input type="date" value={filters.endDate || ''} onChange={e => setFilters({ ...filters, endDate: e.target.value })} />
-                        </div>
-                    </div>
-                )}
-
-                <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })}>
-                    <option value="all">Todas Categorias</option>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            {/* Linha 1: Lado a Lado */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <select value={filters.period} onChange={e => setFilters({ ...filters, period: e.target.value })}>
+                    <option value="month">Mês Atual</option>
+                    <option value="all">Todo o período</option>
+                    <option value="custom">Personalizado</option>
+                </select>
+                <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })}>
+                    <option value="all">Todos Membros</option>
+                    {householdMembers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
                 </select>
             </div>
+
+            {/* Linha 2: Categorias abaixo */}
+            <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })}>
+                <option value="all">Todas Categorias</option>
+                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+
+            {/* Calendário Personalizado */}
+            {filters.period === 'custom' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '5px' }}>
+                    <div className="date-input-wrapper">
+                        <Calendar size={14} />
+                        <input type="date" value={filters.startDate || ''} onChange={e => setFilters({ ...filters, startDate: e.target.value })} />
+                    </div>
+                    <div className="date-input-wrapper">
+                        <Calendar size={14} />
+                        <input type="date" value={filters.endDate || ''} onChange={e => setFilters({ ...filters, endDate: e.target.value })} />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-// --- MODAL DE LANÇAMENTO (RESTALRADO + SCANNER INTELIGENTE) ---
+// --- MODAL DE LANÇAMENTO (COM SCANNER E CATEGORIZAÇÃO) ---
 const Modal = ({ isOpen, onClose }) => {
     const { addTransaction, categories } = useFinance();
     const [form, setForm] = useState({ name: '', value: '', type: 'expense', category: DEFAULT_CATEGORIES[0].name });
@@ -153,107 +154,45 @@ const Modal = ({ isOpen, onClose }) => {
     return (
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '20px' }}>Novo Lançamento</h2>
-
+                <h2 style={{ marginBottom: '20px' }}>Novo Lançamento</h2>
                 {!showScanner ? (
-                    <button onClick={() => setShowScanner(true)} className="btn-scan-action" disabled={isExtracting}>
+                    <button onClick={() => setShowScanner(true)} className="btn btn-scan" style={{ width: '100%', marginBottom: '15px', display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
                         {isExtracting ? <Loader2 className="animate-spin" size={18} /> : <QrCode size={18} />}
-                        {isExtracting ? "Processando..." : "Escanear Nota Fiscal"}
+                        {isExtracting ? "Lendo..." : "Escanear Nota Fiscal"}
                     </button>
                 ) : (
-                    <div className="scanner-wrapper">
+                    <div style={{ marginBottom: '15px' }}>
                         <QrScanner onScanSuccess={handleScanSuccess} />
-                        <button onClick={() => setShowScanner(false)} className="btn-cancel-scan">Cancelar Scanner</button>
+                        <button onClick={() => setShowScanner(false)} className="btn btn-danger" style={{ width: '100%', marginTop: '10px' }}>Cancelar Scanner</button>
                     </div>
                 )}
-
-                <form onSubmit={async (e) => { e.preventDefault(); await addTransaction({ ...form, value: parseFloat(form.value) }); onClose(); }} className="stack">
+                <form onSubmit={async (e) => { e.preventDefault(); await addTransaction({ ...form, value: parseFloat(form.value) }); onClose(); }} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <div className="form-group"><label>Descrição</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
                     <div className="form-group"><label>Valor (R$)</label><input type="number" step="0.01" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })} required /></div>
-                    <div className="row-split">
-                        <div className="form-group flex-1">
-                            <label>Tipo</label>
-                            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                                <option value="income">Receita</option>
-                                <option value="expense">Despesa</option>
-                            </select>
-                        </div>
-                        <div className="form-group flex-1">
-                            <label>Categoria</label>
-                            <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                                {categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </select>
-                        </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div className="form-group"><label>Tipo</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><option value="income">Receita</option><option value="expense">Despesa</option></select></div>
+                        <div className="form-group"><label>Categoria</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
                     </div>
-                    <button type="submit" className="btn btn-primary btn-large">Adicionar Lançamento</button>
-                    <button type="button" className="btn-text-only" onClick={onClose}>Cancelar</button>
+                    <button type="submit" className="btn btn-primary" style={{ padding: '14px' }}>Adicionar Lançamento</button>
                 </form>
             </div>
         </div>
     );
 };
 
-// --- COMPONENTES AUXILIARES ---
-const CategoryManager = ({ isOpen, onClose }) => {
-    const { categories, addCategory, removeCategory } = useFinance();
-    const [newCat, setNewCat] = useState({ name: '', type: 'expense' });
-    if (!isOpen) return null;
-    return (
-        <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
-            <div className="modal-content scrollable">
-                <h2>Categorias</h2>
-                <form onSubmit={async (e) => { e.preventDefault(); await addCategory(newCat); setNewCat({ ...newCat, name: '' }); }} className="row-gap">
-                    <input placeholder="Nova..." value={newCat.name} onChange={e => setNewCat({ ...newCat, name: e.target.value })} />
-                    <button type="submit" className="btn-add-small">+</button>
-                </form>
-                <div className="category-list">
-                    {categories.map(c => (
-                        <div key={c.id} className="category-row">
-                            <span>{c.name}</span>
-                            <button onClick={() => removeCategory(c.id)} className="btn-del">✕</button>
-                        </div>
-                    ))}
-                </div>
-                <button className="btn btn-secondary" onClick={onClose}>Fechar</button>
-            </div>
-        </div>
-    );
-};
-
-const TransactionList = () => {
-    const { transactions, removeTransaction } = useFinance();
-    return (
-        <div className="transactions-section">
-            <div className="section-title">Histórico</div>
-            <div className="list-container">
-                {transactions.length === 0 ? (
-                    <div className="empty-state">Nenhuma transação encontrada.</div>
-                ) : (
-                    transactions.map(t => (
-                        <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
-                            <div className="transaction-info">
-                                <span className="transaction-name">{t.name}</span>
-                                <span className="transaction-date">{new Date(t.date).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                            <div className={`stat-value ${t.type}`}>{formatCurrency(t.value)}</div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
-    );
-};
-
+// --- TELA DE LOGIN (CORRIGIDA - CENTRALIZADA) ---
 const Login = () => {
     const handleGoogleLogin = async () => {
         await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
     };
     return (
-        <div className="login-screen">
-            <div className="login-card">
-                <img src="/logo4.png" alt="FinanSe" className="login-logo" />
-                <button onClick={handleGoogleLogin} className="btn-google">
-                    <img src="https://www.google.com/favicon.ico" alt="" /> Entrar com Google
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px', background: '#0a0a0c' }}>
+            <img src="/logo4.png" alt="FinanSee" style={{ width: '220px', marginBottom: '40px' }} />
+            <div className="card" style={{ padding: '30px', width: '100%', maxWidth: '350px', textAlign: 'center' }}>
+                <h3 style={{ marginBottom: '20px', color: '#fff' }}>Seja bem-vindo</h3>
+                <button onClick={handleGoogleLogin} className="btn-google" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '12px', borderRadius: '12px', background: '#fff', color: '#000', fontWeight: '600', border: 'none' }}>
+                    <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px' }} />
+                    Entrar com Google
                 </button>
             </div>
         </div>
@@ -269,34 +208,35 @@ export default function MainApp() {
     if (!currentUser) return <Login />;
 
     return (
-        <div className="container-main">
-            <Header
-                onManageCategories={() => setModals({ ...modals, cat: true })}
-                onManageHousehold={() => setModals({ ...modals, house: true })}
-            />
+        <div className="container" style={{ padding: '15px' }}>
+            <Header onManageCategories={() => setModals({ ...modals, cat: true })} onManageHousehold={() => setModals({ ...modals, house: true })} />
 
-            <div className="dashboard-layout-grid">
-                <div className="column-main">
-                    <div className="card balance-hero">
-                        <div className="balance-label">SALDO EM NUVEM {filters.period !== 'all' && '(FILTRO)'}</div>
-                        <div className="balance-amount">{formatCurrency(totals.balance)}</div>
+            <div className="dashboard-grid">
+                <div className="main-content">
+                    <div className="card balance-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', padding: '25px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>SALDO EM NUVEN {filters.period !== 'all' && '(FILTRO)'}</div>
+                        <div style={{ fontSize: '36px', fontWeight: '800', marginTop: '5px' }}>{formatCurrency(totals.balance)}</div>
                     </div>
-                    <div className="stats-quick-row">
-                        <div className="stat-card"><div className="stat-label">Receitas</div><div className="stat-value income">{formatCurrency(totals.income)}</div></div>
-                        <div className="stat-card"><div className="stat-label">Despesas</div><div className="stat-value expense">{formatCurrency(totals.expense)}</div></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+                        <div className="card" style={{ padding: '15px' }}><div style={{ fontSize: '12px', color: '#888' }}>Receitas</div><div style={{ color: '#4ade80', fontSize: '18px', fontWeight: 'bold' }}>{formatCurrency(totals.income)}</div></div>
+                        <div className="card" style={{ padding: '15px' }}><div style={{ fontSize: '12px', color: '#888' }}>Despesas</div><div style={{ color: '#f87171', fontSize: '18px', fontWeight: 'bold' }}>{formatCurrency(totals.expense)}</div></div>
                     </div>
                     <DashboardCharts />
                 </div>
 
-                <div className="column-sidebar">
+                <div className="sidebar-content" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <FilterBar />
-                    <TransactionList />
+                    <div className="transactions-section">
+                        <div className="section-title">Histórico</div>
+                        <div className="list-container">
+                            {/* Lista de transações aqui... */}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <button className="btn-fab-add" onClick={() => setModals({ ...modals, add: true })}>+</button>
+            <button className="fab" onClick={() => setModals({ ...modals, add: true })} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--accent-primary)', border: 'none', color: 'white', position: 'fixed', bottom: '25px', right: '25px', fontSize: '28px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>+</button>
             <Modal isOpen={modals.add} onClose={() => setModals({ ...modals, add: false })} />
-            <CategoryManager isOpen={modals.cat} onClose={() => setModals({ ...modals, cat: false })} />
             <HouseholdManager isOpen={modals.house} onClose={() => setModals({ ...modals, house: false })} />
         </div>
     );
