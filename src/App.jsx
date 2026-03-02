@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { FinanceProvider, useFinance, DEFAULT_CATEGORIES } from './context/FinanceContext';
 import DashboardCharts from './components/Charts';
-import { Filter, LogOut, Calendar, Tag, Loader2, Users } from 'lucide-react';
+import QrScanner from './components/QrScanner';
+import { Filter, LogOut, Calendar, Tag, Loader2, Users, QrCode } from 'lucide-react';
 import { supabase } from './utils/supabase';
 
 const formatCurrency = (value) => {
@@ -17,18 +18,10 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
                 <img src="/logo6.png" alt="FinanSe" style={{ height: '35px', width: 'auto' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                    onClick={onManageHousehold}
-                    style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
-                    title="Configurações da Casa (Compartilhar)"
-                >
+                <button onClick={onManageHousehold} style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }} title="Configurações da Casa">
                     <Users size={16} />
                 </button>
-                <button
-                    onClick={onManageCategories}
-                    style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
-                    title="Gerenciar Categorias"
-                >
+                <button onClick={onManageCategories} style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'white', padding: '6px', borderRadius: '8px', cursor: 'pointer' }} title="Gerenciar Categorias">
                     <Tag size={16} />
                 </button>
                 <div style={{ background: 'var(--accent-primary)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -55,7 +48,7 @@ const HouseholdManager = ({ isOpen, onClose }) => {
         setStatus('Processando...');
         const result = await joinHousehold(inviteCode);
         if (result.success) {
-            setStatus('Sucesso! Você agora compartilha esta casa.');
+            setStatus('Sucesso! Casa vinculada.');
             setTimeout(onClose, 2000);
         } else {
             setStatus('Erro: ' + result.error);
@@ -68,36 +61,16 @@ const HouseholdManager = ({ isOpen, onClose }) => {
                 <h2 style={{ marginBottom: '20px' }}>Minha Casa</h2>
                 <div style={{ marginBottom: '30px', padding: '15px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Seu Código de Convite:</label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <code style={{ flex: 1, background: '#000', padding: '10px', borderRadius: '8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-                            {currentUser.household_id || 'Carregando...'}
-                        </code>
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(currentUser.household_id);
-                                alert('Código copiado!');
-                            }}
-                            className="btn btn-primary"
-                            style={{ padding: '8px 15px', fontSize: '0.8rem' }}
-                        >
-                            Copiar
-                        </button>
-                    </div>
+                    <code style={{ background: '#000', padding: '10px', borderRadius: '8px', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>
+                        {currentUser.household_id || 'Carregando...'}
+                    </code>
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '1rem', marginBottom: '15px' }}>Entrar em uma Casa</h3>
-                    <form onSubmit={handleJoin} style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-                        <input
-                            placeholder="Cole o código do parceiro aqui..."
-                            value={inviteCode}
-                            onChange={e => setInviteCode(e.target.value)}
-                            required
-                        />
-                        <button type="submit" className="btn btn-primary">Vincular Conta</button>
-                    </form>
-                    {status && <p style={{ fontSize: '0.8rem', marginTop: '10px', textAlign: 'center', color: status.startsWith('Erro') ? 'var(--accent-danger)' : 'var(--accent-primary)' }}>{status}</p>}
-                </div>
-                <button className="btn" style={{ background: 'var(--glass-bg)', width: '100%' }} onClick={onClose}>Fechar</button>
+                <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input placeholder="Cole o código do parceiro..." value={inviteCode} onChange={e => setInviteCode(e.target.value)} required />
+                    <button type="submit" className="btn btn-primary">Vincular Contas</button>
+                </form>
+                {status && <p style={{ fontSize: '0.8rem', marginTop: '10px', textAlign: 'center' }}>{status}</p>}
+                <button className="btn" style={{ background: 'var(--glass-bg)', width: '100%', marginTop: '15px' }} onClick={onClose}>Fechar</button>
             </div>
         </div>
     );
@@ -119,32 +92,20 @@ const CategoryManager = ({ isOpen, onClose }) => {
     return (
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-                <h2 style={{ marginBottom: '20px' }}>Gerenciar Categorias</h2>
+                <h2 style={{ marginBottom: '20px' }}>Categorias</h2>
                 <form onSubmit={handleSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                    <input
-                        placeholder="Nova categoria..."
-                        value={newCat.name}
-                        onChange={e => setNewCat({ ...newCat, name: e.target.value })}
-                        style={{ flex: 1 }}
-                    />
+                    <input placeholder="Nova categoria..." value={newCat.name} onChange={e => setNewCat({ ...newCat, name: e.target.value })} style={{ flex: 1 }} />
                     <select value={newCat.type} onChange={e => setNewCat({ ...newCat, type: e.target.value })} style={{ width: '100px' }}>
-                        <option value="income">Receita</option>
-                        <option value="expense">Despesa</option>
+                        <option value="income">Rec</option>
+                        <option value="expense">Des</option>
                     </select>
-                    <button type="submit" className="btn btn-primary" style={{ width: '45px', padding: '10px' }}>+</button>
+                    <button type="submit" className="btn btn-primary" style={{ width: '45px' }}>+</button>
                 </form>
                 <div style={{ overflowY: 'auto', flex: 1 }}>
                     {categories.map((c, idx) => (
-                        <div key={c.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--glass-border)', fontSize: '0.9rem' }}>
-                            <span>{c.name} <small style={{ color: 'var(--text-secondary)' }}>({c.type === 'income' ? 'Rec' : 'Des'})</small></span>
-                            {c.id && (
-                                <button
-                                    onClick={() => removeCategory(c.id)}
-                                    style={{ background: 'none', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
-                                >
-                                    ✕
-                                </button>
-                            )}
+                        <div key={c.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--glass-border)' }}>
+                            <span>{c.name}</span>
+                            <button onClick={() => removeCategory(c.id)} style={{ background: 'none', border: 'none', color: 'var(--accent-danger)' }}>✕</button>
                         </div>
                     ))}
                 </div>
@@ -156,75 +117,43 @@ const CategoryManager = ({ isOpen, onClose }) => {
 
 const FilterBar = () => {
     const { filters, setFilters, categories, householdMembers } = useFinance();
-
     return (
         <div className="card" style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', fontWeight: '600' }}>
                 <Filter size={16} /> Filtros
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <select value={filters.period} onChange={e => setFilters({ ...filters, period: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
+                <select value={filters.period} onChange={e => setFilters({ ...filters, period: e.target.value })}>
                     <option value="all">Todo o período</option>
                     <option value="month">Mês Atual</option>
-                    <option value="week">Última Semana</option>
-                    <option value="custom">Personalizado</option>
                 </select>
-                <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px' }}>
-                    <option value="all">Todos Membros</option>
-                    {householdMembers.map(m => (
-                        <option key={m.id} value={m.id}>{m.full_name?.split(' ')[0] || 'Membro'}</option>
-                    ))}
-                </select>
-                <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })} style={{ fontSize: '0.75rem', padding: '8px', gridColumn: 'span 2' }}>
-                    <option value="all">Todas Categorias</option>
-                    {categories.map((c, idx) => <option key={c.id || idx} value={c.name}>{c.name}</option>)}
+                <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })}>
+                    <option value="all">Todos</option>
+                    {householdMembers.map(m => <option key={m.id} value={m.id}>{m.full_name?.split(' ')[0]}</option>)}
                 </select>
             </div>
-            {filters.period === 'custom' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <input type="date" value={filters.startDate} onChange={e => setFilters({ ...filters, startDate: e.target.value })} style={{ fontSize: '0.75rem', padding: '5px' }} />
-                    <input type="date" value={filters.endDate} onChange={e => setFilters({ ...filters, endDate: e.target.value })} style={{ fontSize: '0.75rem', padding: '5px' }} />
-                </div>
-            )}
         </div>
     );
 };
 
 const TransactionList = () => {
-    const { transactions, removeTransaction, householdMembers } = useFinance();
-
+    const { transactions, removeTransaction } = useFinance();
     return (
         <div className="transactions-section">
             <div className="section-title">Histórico</div>
             <div className="list-container">
                 {transactions.length === 0 ? (
-                    <div className="empty-state">Sem transações.</div>
+                    <div className="empty-state">Nenhuma transação encontrada.</div>
                 ) : (
-                    transactions.map(t => {
-                        const creator = householdMembers.find(m => m.id === t.user_id);
-                        return (
-                            <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
-                                <div className="transaction-info">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span className="transaction-name">{t.name}</span>
-                                        {creator && (
-                                            <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: 'var(--glass-bg)', borderRadius: '4px' }}>
-                                                {creator.full_name?.split(' ')[0]}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                        <span className="transaction-date" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                            <Calendar size={10} /> {new Date(t.date).toLocaleDateString('pt-BR')}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className={`stat-value ${t.type}`}>
-                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
-                                </div>
+                    transactions.map(t => (
+                        <div key={t.id} className="transaction-item" onDoubleClick={() => removeTransaction(t.id)}>
+                            <div className="transaction-info">
+                                <span className="transaction-name">{t.name}</span>
+                                <span className="transaction-date">{new Date(t.date).toLocaleDateString('pt-BR')}</span>
                             </div>
-                        );
-                    })
+                            <div className={`stat-value ${t.type}`}>{formatCurrency(t.value)}</div>
+                        </div>
+                    ))
                 )}
             </div>
         </div>
@@ -234,12 +163,14 @@ const TransactionList = () => {
 const Modal = ({ isOpen, onClose }) => {
     const { addTransaction, categories } = useFinance();
     const [form, setForm] = useState({ name: '', value: '', type: 'expense', category: DEFAULT_CATEGORIES[0].name });
+    const [showScanner, setShowScanner] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleTypeChange = (newType) => {
-        const firstValidCategory = categories.find(c => c.type === newType)?.name || '';
-        setForm({ ...form, type: newType, category: firstValidCategory });
+    const handleScanSuccess = (url) => {
+        setShowScanner(false);
+        alert("Nota capturada com sucesso! Link: " + url);
+        console.log("Link NFC-e:", url);
     };
 
     const handleSubmit = async (e) => {
@@ -254,33 +185,38 @@ const Modal = ({ isOpen, onClose }) => {
         <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
                 <h2 style={{ marginBottom: '24px' }}>Novo Lançamento</h2>
+
+                {!showScanner ? (
+                    <button onClick={() => setShowScanner(true)} className="btn" style={{ marginBottom: '20px', background: 'var(--glass-bg)', border: '1px solid var(--accent-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                        <QrCode size={18} /> Escanear Nota Fiscal
+                    </button>
+                ) : (
+                    <div style={{ marginBottom: '20px' }}>
+                        <QrScanner onScanSuccess={handleScanSuccess} />
+                        <button onClick={() => setShowScanner(false)} className="btn" style={{ background: 'transparent', color: 'var(--accent-danger)' }}>Cancelar Scanner</button>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Descrição</label>
-                        <input type="text" placeholder="Ex: Mercado..." value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
-                    </div>
-                    <div className="form-group">
-                        <label>Valor (R$)</label>
-                        <input type="number" step="0.01" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })} required />
-                    </div>
+                    <div className="form-group"><label>Descrição</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
+                    <div className="form-group"><label>Valor (R$)</label><input type="number" step="0.01" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })} required /></div>
                     <div className="row">
-                        <div className="form-group">
+                        <div className="form-group" style={{ flex: 1 }}>
                             <label>Tipo</label>
-                            <select value={form.type} onChange={e => handleTypeChange(e.target.value)}>
-                                <option value="income">Receita (+)</option>
-                                <option value="expense">Despesa (-)</option>
+                            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                                <option value="income">Receita</option>
+                                <option value="expense">Despesa</option>
                             </select>
                         </div>
-                        <div className="form-group">
+                        <div className="form-group" style={{ flex: 1 }}>
                             <label>Categoria</label>
                             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                                {categories.filter(c => c.type === form.type).map((c, idx) => (
-                                    <option key={c.id || idx} value={c.name}>{c.name}</option>
-                                ))}
+                                {categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                             </select>
                         </div>
                     </div>
-                    <button type="submit" className="btn btn-primary">Adicionar</button>
+                    <button type="submit" className="btn btn-primary">Adicionar Lançamento</button>
+                    <button type="button" className="btn" style={{ background: 'transparent', color: 'var(--text-secondary)', marginTop: '10px' }} onClick={onClose}>Cancelar</button>
                 </form>
             </div>
         </div>
@@ -302,11 +238,7 @@ const Login = () => {
         <div className="container" style={{ justifyContent: 'center', height: '100vh', display: 'flex', alignItems: 'center' }}>
             <div className="card" style={{ textAlign: 'center', maxWidth: '400px', width: '90%' }}>
                 <img src="/logo4.png" alt="FinanSe" style={{ width: '180px', marginBottom: '30px' }} />
-                <button
-                    onClick={handleGoogleLogin}
-                    className="btn btn-primary"
-                    style={{ background: '#fff', color: '#000', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                >
+                <button onClick={handleGoogleLogin} className="btn btn-primary" style={{ background: '#fff', color: '#000', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                     <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px' }} />
                     Entrar com Google
                 </button>
@@ -338,16 +270,12 @@ export default function MainApp() {
                 onManageHousehold={() => setIsHouseholdModalOpen(true)}
             />
 
-            {/* ESTRUTURA DASHBOARD GRID */}
             <div className="dashboard-grid">
-
-                {/* COLUNA PRINCIPAL */}
                 <div className="main-content">
                     <div className="card balance-card">
-                        <div className="balance-label">Saldo em Nuvem (Filtro)</div>
+                        <div className="balance-label">Saldo em Nuvem</div>
                         <div className="balance-value">{formatCurrency(totals.balance)}</div>
                     </div>
-
                     <div className="row">
                         <div className="stat-item">
                             <div className="stat-label">Receitas</div>
@@ -358,11 +286,9 @@ export default function MainApp() {
                             <div className="stat-value expense">{formatCurrency(totals.expense)}</div>
                         </div>
                     </div>
-
                     <DashboardCharts />
                 </div>
 
-                {/* COLUNA LATERAL */}
                 <div className="sidebar-content">
                     <FilterBar />
                     <TransactionList />
