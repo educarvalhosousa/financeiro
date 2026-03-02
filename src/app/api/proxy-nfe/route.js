@@ -14,40 +14,48 @@ export async function GET(request) {
         });
         const html = await response.text();
 
-        // 1. EXTRAÇÃO DO NOME DA LOJA (Classe txtTopo)
-        const nameRegex = /<div[^>]*class="txtTopo"[^>]*>([\s\S]*?)<\/div>/i;
+        // 1. EXTRAÇÃO DO ESTABELECIMENTO (Conforme print 001)
+        const nameRegex = /class="txtTopo">([\s\S]*?)<\/div>/i;
         const nameMatch = html.match(nameRegex);
         let extractedName = "Compra via Nota Fiscal";
-
-        if (nameMatch && nameMatch[1]) {
-            // Remove espaços extras e possíveis tags HTML dentro do nome
-            extractedName = nameMatch[1].replace(/<[^>]*>?/gm, '').trim();
+        if (nameMatch) {
+            extractedName = nameMatch[1].replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
         }
 
-        // 2. EXTRAÇÃO DO VALOR TOTAL (Classe vTxtPagar)
-        // Adicionada limpeza agressiva de espaços e caracteres especiais
-        const valueRegex = /<span[^>]*class="vTxtPagar"[^>]*>([\s\S]*?)<\/span>/i;
-        const valueMatch = html.match(valueRegex);
+        // 2. EXTRAÇÃO DO VALOR TOTAL (Conforme print 002 - focado no "Valor a pagar")
         let extractedValue = "";
 
-        if (valueMatch && valueMatch[1]) {
-            // Limpa o valor: remove "R$", espaços, pontos de milhar e troca vírgula por ponto
-            extractedValue = valueMatch[1]
-                .replace(/&nbsp;/g, '') // Remove o espaço especial do HTML
-                .replace(/[^\d,]/g, '') // Mantém apenas números e a vírgula
-                .replace(',', '.');     // Converte para formato decimal do sistema
+        // Busca o valor que vem logo após o termo "Valor a pagar R$" visto no seu print
+        const valueRadarRegex = /Valor a pagar R\$:?[\s\S]{0,100}>([\d\.,]+)</i;
+        const valueRadarMatch = html.match(valueRadarRegex);
+
+        if (valueRadarMatch && valueRadarMatch[1]) {
+            extractedValue = valueRadarMatch[1].replace(/\./g, '').replace(',', '.');
         }
 
-        console.log("--- RESULTADO DA EXTRAÇÃO (Edu) ---");
-        console.log("Estabelecimento:", extractedName);
-        console.log("Valor Final:", extractedValue);
+        // --- BACKUP 1: Pela classe vTxtPagar (caso o radar falhe) ---
+        if (!extractedValue) {
+            const classMatch = html.match(/class="vTxtPagar"[^>]*>([\s\S]*?)<\/span>/i);
+            if (classMatch) {
+                extractedValue = classMatch[1].replace(/[^\d,]/g, '').replace(',', '.');
+            }
+        }
 
-        return NextResponse.json({
-            name: extractedName,
-            value: extractedValue
-        });
+        // --- BACKUP 2: Pelo "Valor pago R$" (visto no print 003) ---
+        if (!extractedValue) {
+            const paidMatch = html.match(/Valor pago R\$:?[\s\S]{0,50}>([\d\.,]+)</i);
+            if (paidMatch) {
+                extractedValue = paidMatch[1].replace(/\./g, '').replace(',', '.');
+            }
+        }
+
+        console.log("--- DEBUG EDU: SCANNER RADAR ---");
+        console.log("Loja:", extractedName);
+        console.log("Valor:", extractedValue);
+
+        return NextResponse.json({ name: extractedName, value: extractedValue });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Erro de conexão' }, { status: 500 });
+        return NextResponse.json({ error: 'Falha na conexão' }, { status: 500 });
     }
 }
