@@ -14,29 +14,33 @@ export async function GET(request) {
         });
         const html = await response.text();
 
-        // 1. Extração do Nome da Loja (Focado na classe txtTopo da SEFAZ-SP)
-        const nameRegex = /<div[^>]*class="txtTopo"[^>]*>([^<]+)<\/div>/i;
+        // 1. EXTRAÇÃO DO NOME DA LOJA (Classe txtTopo)
+        const nameRegex = /<div[^>]*class="txtTopo"[^>]*>([\s\S]*?)<\/div>/i;
         const nameMatch = html.match(nameRegex);
         let extractedName = "Compra via Nota Fiscal";
 
         if (nameMatch && nameMatch[1]) {
-            extractedName = nameMatch[1].trim();
+            // Remove espaços extras e possíveis tags HTML dentro do nome
+            extractedName = nameMatch[1].replace(/<[^>]*>?/gm, '').trim();
         }
 
-        // 2. Extração do Valor Total (Focado na classe vTxtPagar da SEFAZ-SP)
-        const valueRegex = /<span[^>]*class="vTxtPagar"[^>]*>([\d,.]+)<\/span>/i;
+        // 2. EXTRAÇÃO DO VALOR TOTAL (Classe vTxtPagar)
+        // Adicionada limpeza agressiva de espaços e caracteres especiais
+        const valueRegex = /<span[^>]*class="vTxtPagar"[^>]*>([\s\S]*?)<\/span>/i;
         const valueMatch = html.match(valueRegex);
         let extractedValue = "";
 
         if (valueMatch && valueMatch[1]) {
-            // Converte o formato brasileiro "12,50" para o formato do sistema "12.50"
-            extractedValue = valueMatch[1].replace(/\./g, '').replace(',', '.');
+            // Limpa o valor: remove "R$", espaços, pontos de milhar e troca vírgula por ponto
+            extractedValue = valueMatch[1]
+                .replace(/&nbsp;/g, '') // Remove o espaço especial do HTML
+                .replace(/[^\d,]/g, '') // Mantém apenas números e a vírgula
+                .replace(',', '.');     // Converte para formato decimal do sistema
         }
 
-        // Log para você conferir no terminal do VS Code
-        console.log("--- NOTA FISCAL SP DETECTADA ---");
-        console.log("Loja:", extractedName);
-        console.log("Valor:", extractedValue);
+        console.log("--- RESULTADO DA EXTRAÇÃO (Edu) ---");
+        console.log("Estabelecimento:", extractedName);
+        console.log("Valor Final:", extractedValue);
 
         return NextResponse.json({
             name: extractedName,
@@ -44,6 +48,6 @@ export async function GET(request) {
         });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Erro de conexão com a SEFAZ' }, { status: 500 });
+        return NextResponse.json({ error: 'Erro de conexão' }, { status: 500 });
     }
 }

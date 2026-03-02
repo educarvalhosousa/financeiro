@@ -143,6 +143,14 @@ const Modal = ({ isOpen, onClose }) => {
         setIsExtracting(true);
         try {
             const response = await fetch(`/api/proxy-nfe?url=${encodeURIComponent(url)}`);
+
+            // Verifica se a API deu erro de servidor (500)
+            if (!response.ok) {
+                const errData = await response.json();
+                alert(`Erro no servidor: ${errData.error || 'Falha desconhecida'}`);
+                return;
+            }
+
             const data = await response.json();
 
             if (data.value && data.value !== "") {
@@ -154,12 +162,11 @@ const Modal = ({ isOpen, onClose }) => {
                     category: detectedCategory
                 }));
             } else {
-                // AJUSTE AQUI: Agora ele vai te mostrar o link que leu!
-                console.log("Link lido:", url);
-                alert(`A SEFAZ não devolveu os dados.\n\nLink lido: ${url.substring(0, 50)}...`);
+                // Se o valor veio vazio, a SEFAZ bloqueou o robô
+                alert("A SEFAZ bloqueou a leitura automática desta vez. Tente novamente ou digite o valor.");
             }
         } catch (error) {
-            alert("Erro técnico ao processar a nota.");
+            alert("Erro técnico: Verifique se o seu servidor Next.js está rodando.");
         } finally {
             setIsExtracting(false);
         }
