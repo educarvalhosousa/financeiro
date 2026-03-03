@@ -17,18 +17,16 @@ export const DEFAULT_CATEGORIES = [
 
 export const FinanceProvider = ({ children }) => {
     const [transactions, setTransactions] = useState([]);
-    const [categories, setCategories] = useState([]);
+    const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
     const [currentUser, setCurrentUser] = useState(null);
-    const [householdMembers, setHouseholdMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Filter State
+    const [householdMembers, setHouseholdMembers] = useState([]);
     const [filters, setFilters] = useState({
         period: 'month',
-        category: 'all',
         user: 'all',
-        startDate: '',
-        endDate: ''
+        category: 'all',
+        startDate: null,
+        endDate: null
     });
 
     // 1. Escutar Mudanças de Autenticação
@@ -135,7 +133,33 @@ export const FinanceProvider = ({ children }) => {
         };
     }, []);
 
-    // 2. Função para buscar dados (pode ser chamada quando trocar de household)
+    // 2. Buscar membros da casa (A que traz a Telma para a tela)
+    const fetchHouseholdMembers = async () => {
+        try {
+            if (!currentUser?.household_id) return;
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, full_name, picture:avatar_url, household_id')
+                .eq('household_id', currentUser.household_id);
+
+            if (error) throw error;
+
+            console.log("🔍 MEMBROS ENCONTRADOS:", data);
+            setHouseholdMembers(data || []);
+        } catch (error) {
+            console.error("Erro ao buscar membros:", error.message);
+        }
+    };
+
+    // 3. O Gatilho (Faz a busca rodar assim que o App abre ou a casa muda)
+    useEffect(() => {
+        if (currentUser?.household_id) {
+            fetchHouseholdMembers();
+        }
+    }, [currentUser?.household_id]);
+
+    // 4. Função de buscar dados gerais
     const fetchData = async () => {
         if (!currentUser) return;
         console.log('FinanceContext: Iniciando fetchData para household_id:', currentUser.household_id);
@@ -160,17 +184,8 @@ export const FinanceProvider = ({ children }) => {
             if (catError) console.error('FinanceContext: Erro categorias:', catError);
             if (catData) setCategories([...DEFAULT_CATEGORIES, ...catData]);
 
-            // Buscar Membros da Casa
-            if (currentUser.household_id) {
-                const { data: members, error: memError } = await supabase
-                    .from('profiles')
-                    .select('id, full_name')
-                    .eq('household_id', currentUser.household_id);
-                if (memError) console.error('FinanceContext: Erro membros:', memError);
-                if (members) setHouseholdMembers(members);
-            } else {
-                setHouseholdMembers([{ id: currentUser.id, full_name: currentUser.name }]);
-            }
+            // Buscar Membros
+            await fetchHouseholdMembers();
         } catch (err) {
             console.error('FinanceContext: Erro ao carregar dados:', err);
         } finally {
@@ -380,6 +395,27 @@ export const FinanceProvider = ({ children }) => {
         return { success: true };
     };
 
+    // Função de Remover (Para o botão de lixeira funcionar)
+    const removeMember = async (userId) => {
+        try {
+            // Gera um ID aleatório para "expulsar" a pessoa para uma casa vazia
+            const newRandomId = Math.random().toString(36).substring(2, 15);
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ household_id: newRandomId })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            // Atualiza a lista na hora para o membro sumir da tela
+            await fetchHouseholdMembers();
+            alert("Membro removido com sucesso!");
+        } catch (error) {
+            alert("Erro ao remover: " + error.message);
+        }
+    };
+
     return (
         <FinanceContext.Provider value={{
             transactions: filteredTransactions,
@@ -398,7 +434,9 @@ export const FinanceProvider = ({ children }) => {
             setFilters,
             chartData,
             joinHousehold,
-            householdMembers
+            householdMembers,
+            fetchHouseholdMembers,
+            removeMember
         }}>
             {children}
         </FinanceContext.Provider>

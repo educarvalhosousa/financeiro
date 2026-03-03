@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { FinanceProvider, useFinance, DEFAULT_CATEGORIES } from './context/FinanceContext';
 import DashboardCharts from './components/Charts';
 import QrScanner from './components/QrScanner';
-import { Filter, LogOut, Calendar, Tag, Loader2, Users, QrCode, Copy, Check } from 'lucide-react';
+import { Filter, LogOut, Calendar, Tag, Loader2, Users, UserMinus, Trash2, X, QrCode, Copy, Check } from 'lucide-react';
 import { supabase } from './utils/supabase';
 
 const formatCurrency = (value) => {
@@ -32,38 +32,70 @@ const Header = ({ onManageCategories, onManageHousehold }) => {
     );
 };
 
-// --- GERENCIADOR DE CASA (COM BOTÃO COPIAR) ---
 const HouseholdManager = ({ isOpen, onClose }) => {
-    const { currentUser, joinHousehold } = useFinance();
-    const [inviteCode, setInviteCode] = useState('');
+    const { currentUser, householdMembers, removeMember } = useFinance();
     const [copied, setCopied] = useState(false);
 
     if (!isOpen) return null;
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(currentUser.household_id);
+        navigator.clipboard.writeText(currentUser?.household_id);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     return (
         <div className="modal-overlay" style={{ zIndex: 9999, display: 'flex' }} onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
-            <div className="modal-content">
-                <h2 style={{ marginBottom: '20px' }}>Membros da Casa</h2>
-                <div style={{ background: '#000', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #333' }}>
-                    <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Seu Código de Convite:</label>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <code style={{ fontSize: '14px', color: '#fff' }}>{currentUser.household_id}</code>
-                        <button onClick={handleCopy} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>
-                            {copied ? <Check size={16} color="#4ade80" /> : <Copy size={16} />}
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h2 style={{ marginBottom: '20px' }}>Gerenciar Casa</h2>
+
+                <div className="invite-box-container">
+                    <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '8px' }}>Seu Código de Convite</label>
+                    <div className="copy-field" style={{ background: '#000', padding: '12px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333' }}>
+                        <code style={{ fontSize: '12px', color: '#fff', wordBreak: 'break-all', marginRight: '10px' }}>{currentUser?.household_id}</code>
+                        <button onClick={handleCopy} className="btn-copy" style={{ background: 'var(--accent-primary)', border: 'none', color: 'white', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', flexShrink: 0 }}>
+                            {copied ? "Copiado!" : "Copiar"}
                         </button>
                     </div>
                 </div>
-                <form onSubmit={async (e) => { e.preventDefault(); await joinHousehold(inviteCode); onClose(); }} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <input placeholder="Código do parceiro..." value={inviteCode} onChange={e => setInviteCode(e.target.value)} style={{ padding: '12px', borderRadius: '8px' }} />
-                    <button type="submit" className="btn btn-primary">Vincular Agora</button>
-                </form>
-                <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '10px', width: '100%' }}>Fechar</button>
+
+                <div className="members-section" style={{ marginTop: '20px' }}>
+                    <h3 style={{ fontSize: '14px', color: '#fff', marginBottom: '12px' }}>Membros Ativos</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto', paddingRight: '5px' }}>
+                        {/* O '?' aqui é a trava de segurança para não dar erro */}
+                        {householdMembers?.map((member) => (
+                            <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <img
+                                        src={member.picture}
+                                        onError={(e) => {
+                                            console.warn("Foto falhou, usando iniciais.");
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://ui-avatars.com/api/?name=' + member.full_name;
+                                        }}
+                                        style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            objectFit: 'cover'
+                                        }}
+                                        alt={member.full_name}
+                                    />
+                                    <span style={{ fontSize: '14px' }}>{member.full_name} {member.id === currentUser.id && "(Você)"}</span>
+                                </div>
+                                {member.id !== currentUser.id && (
+                                    <button
+                                        onClick={() => { if (confirm("Remover membro?")) removeMember(member.id) }}
+                                        style={{ color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                                    >
+                                        Remover
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '20px', width: '100%', background: 'rgba(255,255,255,0.05)', color: '#fff' }}>Fechar</button>
             </div>
         </div>
     );
@@ -171,7 +203,7 @@ const FilterBar = () => {
                 </select>
                 <select value={filters.user} onChange={e => setFilters({ ...filters, user: e.target.value })}>
                     <option value="all">Todos Membros</option>
-                    {householdMembers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                    {householdMembers?.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
                 </select>
             </div>
 
