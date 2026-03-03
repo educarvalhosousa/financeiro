@@ -135,74 +135,57 @@ export const FinanceProvider = ({ children }) => {
         };
     }, []);
 
-    // 2. Buscar Dados do Supabase quando o usuário estiver logado
+    // 2. Função para buscar dados (pode ser chamada quando trocar de household)
+    const fetchData = async () => {
+        if (!currentUser) return;
+        console.log('FinanceContext: Iniciando fetchData para household_id:', currentUser.household_id);
+        setIsLoading(true);
+
+        try {
+            // Buscar Transações (Household ou Próprias)
+            const query = supabase.from('transactions').select('*').order('date', { ascending: false });
+            if (currentUser.household_id) query.eq('household_id', currentUser.household_id);
+            else query.eq('user_id', currentUser.id);
+
+            const { data: transData, error: transError } = await query;
+            if (transError) console.error('FinanceContext: Erro transações:', transError);
+            if (transData) setTransactions(transData);
+
+            // Buscar Categorias
+            const catQuery = supabase.from('categories').select('*');
+            if (currentUser.household_id) catQuery.eq('household_id', currentUser.household_id);
+            else catQuery.eq('user_id', currentUser.id);
+
+            const { data: catData, error: catError } = await catQuery;
+            if (catError) console.error('FinanceContext: Erro categorias:', catError);
+            if (catData) setCategories([...DEFAULT_CATEGORIES, ...catData]);
+
+            // Buscar Membros da Casa
+            if (currentUser.household_id) {
+                const { data: members, error: memError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name')
+                    .eq('household_id', currentUser.household_id);
+                if (memError) console.error('FinanceContext: Erro membros:', memError);
+                if (members) setHouseholdMembers(members);
+            } else {
+                setHouseholdMembers([{ id: currentUser.id, full_name: currentUser.name }]);
+            }
+        } catch (err) {
+            console.error('FinanceContext: Erro ao carregar dados:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!currentUser) {
             setTransactions([]);
             setCategories(DEFAULT_CATEGORIES);
             return;
         }
-
-        const fetchData = async () => {
-            console.log('FinanceContext: Iniciando fetchData...');
-            setIsLoading(true);
-
-            try {
-                // Buscar Transações da "Casa" (Household)
-                const query = supabase
-                    .from('transactions')
-                    .select('*')
-                    .order('date', { ascending: false });
-
-                if (currentUser.household_id) {
-                    query.eq('household_id', currentUser.household_id);
-                } else {
-                    query.eq('user_id', currentUser.id);
-                }
-
-                const { data: transData, error: transError } = await query;
-                if (transError) console.error('FinanceContext: Erro transações:', transError);
-                if (transData) setTransactions(transData);
-
-                // Buscar Categorias da "Casa"
-                const catQuery = supabase
-                    .from('categories')
-                    .select('*');
-
-                if (currentUser.household_id) {
-                    catQuery.eq('household_id', currentUser.household_id);
-                } else {
-                    catQuery.eq('user_id', currentUser.id);
-                }
-
-                const { data: catData, error: catError } = await catQuery;
-                if (catError) console.error('FinanceContext: Erro categorias:', catError);
-                if (catData) {
-                    setCategories([...DEFAULT_CATEGORIES, ...catData]);
-                }
-
-                // Buscar Membros da Casa
-                if (currentUser.household_id) {
-                    const { data: members, error: memError } = await supabase
-                        .from('profiles')
-                        .select('id, full_name')
-                        .eq('household_id', currentUser.household_id);
-
-                    if (memError) console.error('FinanceContext: Erro membros:', memError);
-                    if (members) setHouseholdMembers(members);
-                } else {
-                    setHouseholdMembers([{ id: currentUser.id, full_name: currentUser.name }]);
-                }
-            } catch (err) {
-                console.error('FinanceContext: Erro ao carregar dados:', err);
-            } finally {
-                console.log('FinanceContext: fetchData concluído.');
-                setIsLoading(false);
-            }
-        };
-
         fetchData();
-    }, [currentUser]);
+    }, [currentUser?.id, currentUser?.household_id]);
 
     const addTransaction = async (transaction) => {
         if (!currentUser) return;
@@ -251,8 +234,33 @@ export const FinanceProvider = ({ children }) => {
             .insert([newCat])
             .select();
 
-        if (!error && data) {
+        if (error) {
+            console.error('FinanceContext: Erro ao adicionar categoria:', error);
+            alert('Erro ao adicionar categoria: ' + error.message);
+            return;
+        }
+
+        if (data) {
             setCategories(prev => [...prev, data[0]]);
+        }
+    };
+
+    const updateCategory = async (id, updates) => {
+        if (!currentUser) return;
+        const { data, error } = await supabase
+            .from('categories')
+            .update(updates)
+            .eq('id', id)
+            .select();
+
+        if (error) {
+            console.error('FinanceContext: Erro ao atualizar categoria:', error);
+            alert('Erro ao atualizar categoria: ' + error.message);
+            return;
+        }
+
+        if (data) {
+            setCategories(prev => prev.map(c => c.id === id ? data[0] : c));
         }
     };
 
@@ -264,9 +272,13 @@ export const FinanceProvider = ({ children }) => {
                 .delete()
                 .eq('id', id);
 
-            if (!error) {
-                setCategories(prev => prev.filter(c => c.id !== id));
+            if (error) {
+                console.error('FinanceContext: Erro ao excluir categoria:', error);
+                alert('Erro ao excluir categoria: ' + error.message);
+                return;
             }
+
+            setCategories(prev => prev.filter(c => c.id !== id));
         }
     };
 
@@ -381,6 +393,7 @@ export const FinanceProvider = ({ children }) => {
             categories,
             addCategory,
             removeCategory,
+            updateCategory,
             filters,
             setFilters,
             chartData,

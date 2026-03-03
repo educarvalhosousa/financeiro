@@ -47,7 +47,7 @@ const HouseholdManager = ({ isOpen, onClose }) => {
     };
 
     return (
-        <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
+        <div className="modal-overlay" style={{ zIndex: 9999, display: 'flex' }} onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
                 <h2 style={{ marginBottom: '20px' }}>Membros da Casa</h2>
                 <div style={{ background: '#000', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #333' }}>
@@ -64,6 +64,90 @@ const HouseholdManager = ({ isOpen, onClose }) => {
                     <button type="submit" className="btn btn-primary">Vincular Agora</button>
                 </form>
                 <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '10px', width: '100%' }}>Fechar</button>
+            </div>
+        </div>
+    );
+};
+
+// --- GERENCIADOR DE CATEGORIAS (COM EDIÇÃO) ---
+const CategoryManager = ({ isOpen, onClose }) => {
+    const { categories, addCategory, removeCategory, updateCategory } = useFinance();
+    const [newCat, setNewCat] = useState({ name: '', type: 'expense' });
+    const [editingId, setEditingId] = useState(null);
+    const [editName, setEditName] = useState('');
+
+    if (!isOpen) return null;
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        if (!newCat.name.trim()) return;
+        await addCategory(newCat);
+        setNewCat({ ...newCat, name: '' });
+    };
+
+    const handleUpdate = async (id) => {
+        if (!editName.trim()) return;
+        await updateCategory(id, { name: editName });
+        setEditingId(null);
+    };
+
+    return (
+        <div className="modal-overlay" style={{ zIndex: 9999, display: 'flex' }} onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h2 style={{ marginBottom: '20px' }}>Gerenciar Categorias</h2>
+
+                <form onSubmit={handleAdd} style={{ display: 'flex', gap: '8px', marginBottom: '20px', alignItems: 'center' }}>
+                    <input
+                        placeholder="Nova categoria..."
+                        value={newCat.name}
+                        onChange={e => setNewCat({ ...newCat, name: e.target.value })}
+                        style={{ flex: 3, padding: '12px', borderRadius: '8px', background: '#222', border: '1px solid #444', color: 'white', minWidth: '0' }}
+                    />
+                    <select
+                        value={newCat.type}
+                        onChange={e => setNewCat({ ...newCat, type: e.target.value })}
+                        style={{ flex: 1.5, padding: '12px 8px', borderRadius: '8px', background: '#222', border: '1px solid #444', color: 'white', fontSize: '14px', minWidth: '0' }}
+                    >
+                        <option value="expense">Despesa</option>
+                        <option value="income">Receita</option>
+                    </select>
+                    <button type="submit" className="btn btn-primary" style={{ width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0', fontSize: '20px', flexShrink: 0 }}>+</button>
+                </form>
+
+                <div className="category-list" style={{ maxHeight: '350px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {categories.map(cat => (
+                        <div key={cat.id || `default-${cat.name}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: cat.type === 'income' ? '#4ade80' : '#f87171' }}></div>
+                                {editingId === cat.id ? (
+                                    <input
+                                        value={editName}
+                                        onChange={e => setEditName(e.target.value)}
+                                        onBlur={() => handleUpdate(cat.id)}
+                                        onKeyDown={e => e.key === 'Enter' && handleUpdate(cat.id)}
+                                        autoFocus
+                                        style={{ background: '#000', border: '1px solid var(--accent-primary)', color: 'white', padding: '4px 8px', borderRadius: '4px', width: '80%' }}
+                                    />
+                                ) : (
+                                    <span style={{ fontSize: '14px' }}>{cat.name}</span>
+                                )}
+                            </div>
+
+                            {cat.id && ( // Só categorias do usuário
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    {editingId !== cat.id ? (
+                                        <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); }} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
+                                    ) : (
+                                        <button onClick={() => handleUpdate(cat.id)} style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', fontSize: '12px' }}>Salvar</button>
+                                    )}
+                                    <button onClick={() => removeCategory(cat.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: '20px', width: '100%' }}>Fechar</button>
             </div>
         </div>
     );
@@ -173,7 +257,7 @@ const Modal = ({ isOpen, onClose }) => {
     };
 
     return (
-        <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
+        <div className="modal-overlay" style={{ zIndex: 9999, display: 'flex' }} onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
             <div className="modal-content">
                 <h2 style={{ marginBottom: '20px' }}>Novo Lançamento</h2>
                 {!showScanner ? (
@@ -230,7 +314,7 @@ export default function MainApp() {
 
     return (
         <div className="container" style={{ padding: '15px' }}>
-            <Header onManageCategories={() => setModals({ ...modals, cat: true })} onManageHousehold={() => setModals({ ...modals, house: true })} />
+            <Header onManageCategories={() => setModals(prev => ({ ...prev, cat: true }))} onManageHousehold={() => setModals(prev => ({ ...prev, house: true }))} />
 
             <div className="dashboard-grid">
                 <div className="main-content">
@@ -256,9 +340,10 @@ export default function MainApp() {
                 </div>
             </div>
 
-            <button className="fab" onClick={() => setModals({ ...modals, add: true })} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--accent-primary)', border: 'none', color: 'white', position: 'fixed', bottom: '25px', right: '25px', fontSize: '28px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>+</button>
-            <Modal isOpen={modals.add} onClose={() => setModals({ ...modals, add: false })} />
-            <HouseholdManager isOpen={modals.house} onClose={() => setModals({ ...modals, house: false })} />
+            <button className="fab" onClick={() => setModals(prev => ({ ...prev, add: true }))} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--accent-primary)', border: 'none', color: 'white', position: 'fixed', bottom: '25px', right: '25px', fontSize: '28px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>+</button>
+            <Modal isOpen={modals.add} onClose={() => setModals(prev => ({ ...prev, add: false }))} />
+            <HouseholdManager isOpen={modals.house} onClose={() => setModals(prev => ({ ...prev, house: false }))} />
+            <CategoryManager isOpen={modals.cat} onClose={() => setModals(prev => ({ ...prev, cat: false }))} />
         </div>
     );
 }
